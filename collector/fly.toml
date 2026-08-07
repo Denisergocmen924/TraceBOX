@@ -1,0 +1,79 @@
+# =============================================================================
+# BlackBox Collector — Fly.io uygulama yapılandırması
+#
+# İLK DEPLOY (bu dizinde):
+#   fly launch --no-deploy --name blackbox-collector --region fra
+#     (bu dosya zaten var; fly'ın üzerine yazmasına izin verme)
+#   fly deploy
+#
+# GÜNCELLEME:
+#   fly deploy
+#
+# NOT: uygulama adı, agent config'indeki collector_url ile eşleşmeli
+#      (CLAUDE.md §4.3 -> https://blackbox-collector.fly.dev).
+#      Bu ad Fly genelinde benzersiz olmak zorunda; alınmışsa hem burayı hem
+#      config.example.toml'daki collector_url'i güncelle.
+# =============================================================================
+
+app = "blackbox-collector"
+
+# Frankfurt. Seçim gerekçesi: Supabase projesi de eu-central-1'de. Collector her
+# ingest isteğinde Supabase'e yazıyor; ikisi farklı kıtada olsaydı her yazmaya
+# onlarca ms gidiş-dönüş eklenirdi. Agent'a olan mesafe önemsiz — agent zaten
+# asenkron çalışıyor ve spool'u var.
+primary_region = "fra"
+
+[build]
+  # Dockerfile aynı dizinde; Fly onu otomatik bulur. Blok, yapılandırmanın
+  # eksiksiz okunması için bilerek açık bırakıldı.
+
+[http_service]
+  # Dockerfile'daki EXPOSE ve uvicorn --port ile AYNI olmalı.
+  internal_port = 8080
+
+  # TLS zorunlu. Cihaz anahtarı her istekte Authorization başlığında gidiyor;
+  # düz HTTP'ye izin vermek onu ağdaki herkese açık etmek demek. Fly TLS'i
+  # kendi kenarında sonlandırır, sertifika yönetimi bize kalmaz.
+  force_https = true
+
+  # ÖLÇEKLEME / MALİYET KARARI:
+  # Trafik yokken makine durur, istek gelince otomatik kalkar. MVP'de collector
+  # çoğu zaman boş; sürekli ayakta makine boşuna fatura demek.
+  # Bedeli: soğuk başlatmada ~1-2 sn ek gecikme. Kabul edilebilir, çünkü agent
+  # at-least-once çalışıyor — istek zaman aşımına uğrarsa veri spool'da kalır ve
+  # tekrar denenir, kaybolmaz.
+  # Gerçek kullanıma geçerken min_machines_running = 1 yapılacak.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  processes = ["app"]
+
+  [[http_service.checks]]
+    # main.py'deki /health uç noktası. Fly, deploy sırasında bunun 200 dönmesini
+    # bekler; dönmezse yeni sürümü yayına almaz ve eski sürüm ayakta kalır.
+    # Yani bozuk bir deploy servisi düşürmez.
+    method = "GET"
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[[vm]]
+  # En küçük paylaşımlı makine. Collector'ın işi I/O ağırlıklı (istek al, JSON
+  # ayrıştır, Supabase'e yaz) — CPU'ya değil, ağ beklemesine gidiyor. Ölçekleme
+  # gerekirse önce makine SAYISI artırılır, boyutu değil.
+  size = "shared-cpu-1x"
+  memory = "256mb"
+
+# =============================================================================
+# GEREKLİ SECRET'LAR (M3/M5'te ayarlanacak — repoya ASLA girmez):
+#   fly secrets set SUPABASE_URL="https://<proje-ref>.supabase.co"
+#   fly secrets set SUPABASE_SERVICE_KEY="<service_role secret>"
+#   fly secrets set SUPABASE_JWT_SECRET="<JWT secret>"
+#
+# Secret'lar `fly secrets` ile ayarlanır, bu dosyadaki [env] bloğuyla DEĞİL:
+# fly.toml git'e girer, secret'lar Fly tarafında şifreli tutulur ve deploy
+# anında ortam değişkeni olarak enjekte edilir.
+# M0'da hiçbiri gerekmiyor — "hello" uygulamasının veritabanı bağlantısı yok.
+# =============================================================================

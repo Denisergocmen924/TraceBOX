@@ -1,0 +1,65 @@
+# =============================================================================
+# BlackBox — git dışında kalacaklar
+#
+# EN ÖNEMLİ KURAL: hiçbir sır (secret) bu repoya girmez. Cihaz anahtarları,
+# Supabase service key ve JWT secret'ı git geçmişine bir kez düştüğünde geri
+# alınamaz — commit silinse bile fork'larda, klonlarda ve yansılarda kalır.
+# Tek doğru tepki anahtarı iptal edip yenilemektir, ki bu da her cihaza tekrar
+# gitmek demek. Bu yüzden önlem, temizlikten çok daha ucuz.
+# =============================================================================
+
+# --- SIRLAR ------------------------------------------------------------------
+# Gerçek agent config'i: device_key'i içerir (CLAUDE.md §4.3).
+# Repoda sadece config.example.toml durur; gerçek dosya /etc/blackbox/ altında
+# ve chmod 600'dür. Yerel testte kök dizine kopyalanabilir diye burada da engelli.
+config.toml
+agent/config.toml
+
+.env
+.env.*
+!.env.example
+
+# Fly.io yerel durum dizini
+.fly/
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Agent çalışma zamanı verisi ---------------------------------------------
+# Normalde /var/lib/blackbox/ altında dururlar; yerel geliştirmede repo içinde
+# oluşabilirler. state.json cihazın kendi durumudur, spool ise gönderilmemiş
+# telemetri — ikisi de makineye özgü, paylaşılacak veri değil.
+state.json
+spool.db
+spool.db-*
+*.sqlite
+*.sqlite3
+
+# --- Dashboard (Next.js, M9) -------------------------------------------------
+node_modules/
+.next/
+out/
+next-env.d.ts
+.vercel
+
+# --- Editör / işletim sistemi ------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# VS Code: paylaşılan ayarlar (önerilen eklentiler, hata ayıklama profilleri)
+# repoda kalsın, kişisel olanlar kalmasın.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Dokümantasyon dosyaları root repo dışında tutulacaktır 
+CLAUDE.md

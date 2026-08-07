@@ -1,0 +1,29 @@
+# Docker build bağlamına (context) GİRMEYECEKLER.
+#
+# İki nedenle önemli:
+#   1) Hız — build bağlamı Fly'a yüklenir; gereksiz dosya = her deploy'da
+#      boşuna yüklenen megabaytlar.
+#   2) Güvenlik — bağlama giren her dosya image'a sızabilir. Bir .env dosyasının
+#      yanlışlıkla image'a kopyalanması, secret'ı image'ı çekebilen herkese
+#      açık etmek demektir.
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Yerel secret'lar — image'da işleri yok, Fly secrets üzerinden geliyorlar.
+.env
+.env.*
+
+# Fly'ın kendi durum dosyaları
+fly.toml
+.fly/
+
+# Geliştirme artıkları
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.git/
+.gitignore

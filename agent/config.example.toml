@@ -1,0 +1,81 @@
+# =============================================================================
+# BlackBox Agent — örnek yapılandırma
+#
+# Gerçek dosya:  /etc/blackbox/config.toml   (sahip: blackbox, izin: 600)
+# install.sh bu dosyayı şablon alarak oluşturur ve device_key'i sana sorar.
+# Bu örnek dosya repoda durur; GERÇEK config ASLA repoya girmez (.gitignore).
+#
+# İKİ TEMEL KURAL (CLAUDE.md §2):
+#   * config = İNSAN sınırı. Buradaki her şeyi kullanıcı belirler.
+#   * Agent bu dosyayı yalnızca OKUR, asla yazmaz. Agent'ın yazdığı tek dosya
+#     state.json'dır (single writer).
+#
+# Değişiklikler yeniden başlatma GEREKTİRMEZ: döngü her tick'te config'i tekrar
+# okur. Ucuz bir okuma karşılığında servisi durdurup başlatmadan ayar yapılır.
+# =============================================================================
+
+# --- Bağlantı ----------------------------------------------------------------
+# Collector'ın adresi. Fly uygulama adı farklıysa burayı güncelle.
+collector_url = "https://blackbox-collector.fly.dev"
+
+# Cihaz anahtarı — dashboard'da "Cihaz Ekle" dediğinde BİR KEZ gösterilir.
+# Sunucuda yalnızca SHA-256 özeti saklanır (devices.key_hash), düz hali hiçbir
+# yerde tutulmaz; kaybedersen yeni cihaz oluşturman gerekir.
+# Agent'ın tüm kimliği budur: device_id'yi sunucu bu anahtardan çözer
+# (CLAUDE.md §11 / Boşluk A). Bu yüzden dosya izni 600.
+device_key = "bbx_live_BURAYA_ANAHTARINI_YAZ"
+
+# --- Zamanlama ---------------------------------------------------------------
+# Ne sıklıkla ölçüm alınacağı. Küçültmek çözünürlüğü artırır ama hem CPU hem de
+# saklanan satır sayısı doğrusal büyür.
+collect_interval_seconds = 5
+
+# Spool'daki birikimin ne sıklıkla gönderileceği. 5 sn toplayıp 30 sn'de bir
+# göndermek, 6 ölçümü tek HTTP isteğinde birleştirir — "az yaz, seyrek çek"
+# (CLAUDE.md §2). Kritik veri zaten beklemez: eşik aşımında acil flush devreye
+# girer.
+# KODDA ALT SINIR 10 saniyedir; daha küçük bir değer yazsan da 10'a yuvarlanır.
+# Bu bir POLICY: kullanıcının kendini (ve collector'ı) istekle boğmasını önler.
+send_interval_seconds = 30
+
+# Komut kuyruğunun yoklanma sıklığı. pause/resume/delete komutlarının cihaza
+# ulaşma gecikmesi bu değer kadardır. Agent dışarıdan bağlantı kabul etmediği
+# için (dinleyen port yok = saldırı yüzeyi yok) komutlar ancak yoklamayla gelir.
+command_poll_seconds = 10
+
+# --- Acil gönderim (flush) eşikleri ------------------------------------------
+# Bu değerler aşıldığında bir sonraki normal gönderimi BEKLEMEDEN spool hemen
+# boşaltılır. Kara kutu mantığı: makine boğulmaya başladığında elimizdeki veriyi
+# hâlâ ağ varken dışarı çıkarmak.
+flush_cpu_threshold = 90
+flush_ram_threshold = 90
+flush_disk_threshold = 95
+
+# Art arda flush selini önler: son acil gönderimden bu kadar saniye geçmeden
+# yenisi yapılmaz. Eşiğin etrafında salınan bir makine aksi halde saniyede
+# birkaç istek atardı. Veri kaybolmaz — bu sırada spool'da birikmeye devam eder.
+flush_cooldown_seconds = 20
+
+# --- Spool (yerel bekleme alanı) sınırları -----------------------------------
+# Spool bir ring buffer'dır: iki sınırdan biri aşılınca EN ESKİ kayıt atılır.
+# Amaç, uzun süreli bir ağ kesintisinin diski doldurup makineyi çökertmesini
+# önlemek — izleme aracının izlediği makineyi devirmesi kabul edilemez.
+# Sınıra dayanıldığında en yeni (yani en alakalı) veri korunur.
+spool_max_age_days = 10
+spool_max_size_mb = 200
+
+# --- Eklentiler (add-on) -----------------------------------------------------
+# Varsayılan olarak HEPSİ KAPALI. Her eklenti ek CPU, ek sütun ve ek saklama
+# maliyeti demek; ihtiyacı olmayan kullanıcı bedelini ödemesin (CLAUDE.md §2,
+# "özellik, çözdüğü sorunun sıklığına oranlı olmalı").
+#
+# Kullanılabilir değerler:
+#   "temperature"     CPU sıcaklığı           -> metrics.temperature_c
+#   "swap"            swap kullanımı          -> metrics.swap_used_mb
+#   "load_avg"        yük ortalaması (Linux)  -> metrics.load_avg_1/5/15
+#   "gpu"             GPU kullanımı + VRAM    -> metrics.gpu_usage_percent, gpu_vram_used_mb
+#   "external_ip"     dış IP (statik)         -> devices.external_ip
+#   "crash_processes" flush anında en çok kaynak yiyen 5 süreç -> crash_snapshots
+#
+# Örnek: enabled_addons = ["swap", "load_avg"]
+enabled_addons = []
