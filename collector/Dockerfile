@@ -1,5 +1,5 @@
 # =============================================================================
-# BlackBox Collector — Fly.io için container image
+# TraceBox Collector — Fly.io için container image
 #
 # Neden slim (alpine değil): alpine musl libc kullanır; uvloop/httptools gibi
 # derlenmiş paketlerde hazır wheel bulunmaz, her build'de kaynaktan derleme

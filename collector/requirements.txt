@@ -1,4 +1,4 @@
-# BlackBox Collector — Python bağımlılıkları
+# TraceBox Collector — Python bağımlılıkları
 #
 # Sürümler == ile SABİTLENDİ. Docker image'ı her yeniden kurulduğunda (Fly deploy,
 # CI, yerel test) birebir aynı paketlerin gelmesi için. Sabitlenmemiş bağımlılık,

@@ -1,5 +1,5 @@
 """
-BlackBox Collector — FastAPI uygulamasının giriş noktası.
+TraceBox Collector — FastAPI uygulamasının giriş noktası.
 
 Collector, cihazların buluta açılan TEK YAZMA kapısıdır (CLAUDE.md §1):
 
@@ -31,7 +31,7 @@ from fastapi import FastAPI
 COLLECTOR_VERSION = "0.1.0"
 
 app = FastAPI(
-    title="BlackBox Collector",
+    title="TraceBox Collector",
     version=COLLECTOR_VERSION,
     # Otomatik dokümantasyon MVP boyunca açık: endpoint'leri elle test etmeyi
     # (özellikle M3'te ilk gerçek ingest denemesini) çok kolaylaştırıyor.
@@ -49,7 +49,7 @@ async def root() -> dict:
     "buraya doğru geldin" der. Yanlış URL'e istek atan bir agent'ın hatayı
     hızlı görmesini sağlar.
     """
-    return {"service": "blackbox-collector", "version": COLLECTOR_VERSION}
+    return {"service": "tracebox-collector", "version": COLLECTOR_VERSION}
 
 
 @app.get("/health")

@@ -1,5 +1,5 @@
 -- =============================================================================
--- BlackBox — db/triggers.sql
+-- TraceBox — db/triggers.sql
 -- auth.users -> accounts otomatik satır açma.
 --
 -- ÇALIŞTIRMA SIRASI:  schema.sql  ->  [triggers.sql]  ->  rls.sql

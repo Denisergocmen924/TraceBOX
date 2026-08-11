@@ -1,5 +1,5 @@
 """
-BlackBox Agent — izlenen makinede çalışan toplayıcı.
+TraceBox Agent — izlenen makinede çalışan toplayıcı.
 
 Görevi: metrik ve sistem loglarını sürekli toplamak, diske (spool) yazmak ve
 makine çökmeden ÖNCE collector'a göndermek. Projenin ana içgörüsü burada:

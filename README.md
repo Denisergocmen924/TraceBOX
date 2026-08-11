@@ -1,4 +1,4 @@
-# BlackBox
+# TraceBox
 
 Remote log-shipping and monitoring for machines that might not survive to tell you what happened.
 
@@ -10,7 +10,7 @@ Like an aircraft's black box: it records up to the last moment, and it lives whe
 
 The naive framing is "store logs in the cloud." That is not the problem. The problem is **getting data out while the event is still happening**. A machine that tries to upload its final state *during* a crash has already lost — the network stack, the disk, or the process itself is usually the thing that failed.
 
-So BlackBox inverts it: ship continuously, and ship *harder* when thresholds are crossed. By the time a machine dies, the interesting data is already gone.
+So TraceBox inverts it: ship continuously, and ship *harder* when thresholds are crossed. By the time a machine dies, the interesting data is already gone.
 
 ## Architecture
 

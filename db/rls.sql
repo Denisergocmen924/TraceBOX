@@ -1,5 +1,5 @@
 -- =============================================================================
--- BlackBox — db/rls.sql
+-- TraceBox — db/rls.sql
 -- Row-Level Security politikaları + kolon bazlı yetkiler.
 --
 -- ÇALIŞTIRMA SIRASI:  schema.sql  ->  triggers.sql  ->  [rls.sql]

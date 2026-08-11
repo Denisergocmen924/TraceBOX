@@ -1,7 +1,7 @@
 # =============================================================================
-# BlackBox Agent — örnek yapılandırma
+# TraceBox Agent — örnek yapılandırma
 #
-# Gerçek dosya:  /etc/blackbox/config.toml   (sahip: blackbox, izin: 600)
+# Gerçek dosya:  /etc/tracebox/config.toml   (sahip: tracebox, izin: 600)
 # install.sh bu dosyayı şablon alarak oluşturur ve device_key'i sana sorar.
 # Bu örnek dosya repoda durur; GERÇEK config ASLA repoya girmez (.gitignore).
 #
@@ -16,14 +16,14 @@
 
 # --- Bağlantı ----------------------------------------------------------------
 # Collector'ın adresi. Fly uygulama adı farklıysa burayı güncelle.
-collector_url = "https://blackbox-collector.fly.dev"
+collector_url = "https://tracebox-collector.fly.dev"
 
 # Cihaz anahtarı — dashboard'da "Cihaz Ekle" dediğinde BİR KEZ gösterilir.
 # Sunucuda yalnızca SHA-256 özeti saklanır (devices.key_hash), düz hali hiçbir
 # yerde tutulmaz; kaybedersen yeni cihaz oluşturman gerekir.
 # Agent'ın tüm kimliği budur: device_id'yi sunucu bu anahtardan çözer
 # (CLAUDE.md §11 / Boşluk A). Bu yüzden dosya izni 600.
-device_key = "bbx_live_BURAYA_ANAHTARINI_YAZ"
+device_key = "tbx_live_BURAYA_ANAHTARINI_YAZ"
 
 # --- Zamanlama ---------------------------------------------------------------
 # Ne sıklıkla ölçüm alınacağı. Küçültmek çözünürlüğü artırır ama hem CPU hem de

@@ -1,5 +1,5 @@
 -- =============================================================================
--- BlackBox — db/schema.sql
+-- TraceBox — db/schema.sql
 -- 6 tablo + indeksler + foreign key'ler.
 --
 -- ÇALIŞTIRMA SIRASI:  schema.sql  ->  triggers.sql  ->  rls.sql
@@ -58,7 +58,7 @@ create table accounts (
   -- değişir. Retention job'ı bu değeri okur.
   retention_days integer     not null default 10,
 
-  -- BlackBox'ın kendi ürün planı (Supabase'in faturalandırma planıyla ilgisi yok).
+  -- TraceBox'ın kendi ürün planı (Supabase'in faturalandırma planıyla ilgisi yok).
   -- Bugün tek değer var; ileride 'pro' eklenince retention_days bununla birlikte
   -- yükselecek.
   plan           text        not null default 'free',

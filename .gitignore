@@ -1,5 +1,5 @@
 # =============================================================================
-# BlackBox — git dışında kalacaklar
+# TraceBox — git dışında kalacaklar
 #
 # EN ÖNEMLİ KURAL: hiçbir sır (secret) bu repoya girmez. Cihaz anahtarları,
 # Supabase service key ve JWT secret'ı git geçmişine bir kez düştüğünde geri
@@ -10,7 +10,7 @@
 
 # --- SIRLAR ------------------------------------------------------------------
 # Gerçek agent config'i: device_key'i içerir (CLAUDE.md §4.3).
-# Repoda sadece config.example.toml durur; gerçek dosya /etc/blackbox/ altında
+# Repoda sadece config.example.toml durur; gerçek dosya /etc/tracebox/ altında
 # ve chmod 600'dür. Yerel testte kök dizine kopyalanabilir diye burada da engelli.
 config.toml
 agent/config.toml
@@ -33,7 +33,7 @@ venv/
 .ruff_cache/
 
 # --- Agent çalışma zamanı verisi ---------------------------------------------
-# Normalde /var/lib/blackbox/ altında dururlar; yerel geliştirmede repo içinde
+# Normalde /var/lib/tracebox/ altında dururlar; yerel geliştirmede repo içinde
 # oluşabilirler. state.json cihazın kendi durumudur, spool ise gönderilmemiş
 # telemetri — ikisi de makineye özgü, paylaşılacak veri değil.
 state.json
@@ -61,5 +61,8 @@ Thumbs.db
 !.vscode/settings.json
 !.vscode/extensions.json
 
-# Dokümantasyon dosyaları root repo dışında tutulacaktır 
+# Dokümantasyon dosyaları root repo dışında tutulacaktır
+# CLAUDE.md fiziksel olarak md/CLAUDE.md'dir; kökteki dosya ona bir symlink.
+# md/ ayrı bir private repo (github.com/Denisergocmen924/md) — bu public repoya girmez.
 CLAUDE.md
+md/
