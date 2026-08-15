@@ -1,51 +1,38 @@
 # =============================================================================
-# TraceBox Collector — Fly.io için container image
-#
-# Neden slim (alpine değil): alpine musl libc kullanır; uvloop/httptools gibi
-# derlenmiş paketlerde hazır wheel bulunmaz, her build'de kaynaktan derleme
-# gerekir. Slim, birkaç MB fazlasına karşılık dakikalarca build süresi kazandırır.
-#
-# Neden 3.12 (3.13/3.14 değil): C uzantılı paketlerin (uvloop, httptools) hazır
-# wheel'lerinin en oturmuş olduğu sürüm. Collector'da en yeni Python
-# özelliklerine ihtiyacımız yok — burada sıkıcı olmak bir erdem.
+# TraceBox Collector — container image (python:3.12-slim tabanlı).
 # =============================================================================
 FROM python:3.12-slim
 
-# PYTHONDONTWRITEBYTECODE: container'da .pyc dosyası yazmanın anlamı yok
-#   (image katmanı salt-okunur, süreç yeniden başlayınca zaten kaybolur).
-# PYTHONUNBUFFERED: stdout'u tamponlama. Tamponlanırsa `fly logs` çıktısı
-#   gecikmeli gelir; süreç çökerse son satırlar hiç görünmez — bir log-shipping
-#   projesinde kendi loglarımızı kaybetmek özellikle kötü olurdu.
+# PYTHONDONTWRITEBYTECODE: yorumlayıcı .pyc dosyası üretmez.
+# PYTHONUNBUFFERED: stdout tamponlanmaz, log satırları yazıldıkları anda dışarı
+#   verilir — süreç çökse bile son satırlar `fly logs` çıktısına düşer.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# KATMAN ÖNBELLEĞİ: önce SADECE requirements.txt kopyalanır ve kurulum yapılır.
-# Kod değişip requirements değişmediğinde Docker bu katmanı önbellekten alır ve
-# pip install adımı tamamen atlanır. Kodla birlikte kopyalasaydık her küçük
-# değişiklik tüm bağımlılıkları yeniden indirtirdi.
+# requirements.txt tek başına, koddan önce kopyalanır: bu dosya değişmediği
+# sürece Docker aşağıdaki pip install katmanını önbellekten alır ve adımı atlar.
 COPY requirements.txt .
-# --no-cache-dir: pip'in indirdiği paketleri image içinde saklamasını engeller,
-# bir daha kullanılmayacak onlarca MB'ı image'dan çıkarır.
+
+# --no-cache-dir: pip indirdiği paket arşivlerini image içinde saklamaz.
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Uygulama kodu — en sık değişen şey, bu yüzden en son katmanda.
+# Uygulama kodu en son katmanda kopyalanır; en sık değişen içerik olduğu için
+# üstündeki katmanların önbelleği bozulmaz.
 COPY . .
 
-# ROOT OLMAYAN KULLANICI: bir güvenlik açığında saldırganın container içinde
-# root yetkisi bulmasını engeller. Collector, internete açık ve kimliği
-# doğrulanmamış istek kabul eden tek bileşenimiz — en çok burada gerekli.
+# uid 10001 ile yetkisiz bir kullanıcı açılır, /app ona devredilir ve sonraki
+# tüm komutlar (CMD dahil) root yerine bu kullanıcıyla çalışır.
 RUN useradd --create-home --uid 10001 collector \
     && chown -R collector:collector /app
 USER collector
 
-# fly.toml'daki internal_port ile AYNI olmalı; farklı olursa Fly trafiği
-# boşluğa yönlendirir ve deploy sağlık kontrolünde takılır.
+# fly.toml'daki internal_port ile aynı port.
 EXPOSE 8080
 
-# --host 0.0.0.0 ZORUNLU: varsayılan 127.0.0.1 sadece container içinden
-# erişilebilir olurdu, Fly'ın proxy'si bağlanamazdı.
-# Tek worker: Fly'da yatay ölçekleme makine sayısıyla yapılır, süreç sayısıyla
-# değil. Ayrıca 256 MB RAM'de çoklu worker'ın maliyeti kazancından fazla.
+# --host 0.0.0.0: container dışından, yani Fly proxy'sinden gelen bağlantılar
+#   kabul edilir; uvicorn'un varsayılanı olan 127.0.0.1 yalnızca container
+#   içinden erişilebilir olurdu.
+# Tek uvicorn worker'ı çalışır; eşzamanlılık asyncio döngüsünden gelir.
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

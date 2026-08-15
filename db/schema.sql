@@ -1,39 +1,26 @@
 -- =============================================================================
 -- TraceBox — db/schema.sql
--- 6 tablo + indeksler + foreign key'ler.
+-- 6 tablo, indeksler ve foreign key'ler.
 --
--- ÇALIŞTIRMA SIRASI:  schema.sql  ->  triggers.sql  ->  rls.sql
--- Nerede: Supabase Dashboard -> SQL Editor -> New query -> yapıştır -> Run.
+-- accounts.id ile auth.users.id aynı UUID'dir; RLS politikaları bu sayede
+-- doğrudan "account_id = auth.uid()" karşılaştırmasına iner (CLAUDE.md §5).
 --
--- TEMEL İLKE (CLAUDE.md §5):
---   accounts.id == auth.users.id  (AYNI UUID).
---   Bu sayede her RLS politikası tek bir basit karşılaştırmaya iner:
---   "satırın account_id'si == auth.uid() mi?"  -> join yok, alt sorgu yok.
+-- metrics / logs / crash_snapshots tablolarında account_id, device_id'nin
+-- yanında denormalize tutulur: satırın sahibi devices tablosuna join atılmadan
+-- bilinir.
 --
--- DENORMALİZASYON KARARI:
---   metrics / logs / crash_snapshots tablolarında hem device_id hem account_id var.
---   account_id teorik olarak device_id üzerinden türetilebilir (fazlalık bilgi), ama
---   bilerek kopyalıyoruz çünkü:
---     1) RLS politikası devices tablosuna join atmak zorunda kalmıyor (her satır
---        okumasında join = ölçeklenmeyen maliyet),
---     2) retention job'ı (pg_cron) doğrudan accounts.retention_days ile eşleşiyor.
---   Bedeli: satır başına 16 byte. Kazancı: her okumada join'den kurtulmak.
+-- measured_at değerini agent yazar; satırın sunucuya ulaştığı anı değil,
+-- ölçümün makinede alındığı anı gösterir.
 --
--- ZAMAN DAMGASI KARARI:
---   measured_at değerini AGENT koyar, sunucu değil. Çünkü ilgilendiğimiz an
---   "olayın makinede olduğu an"; "sunucuya ulaştığı an" değil. Spool'da 2 saat
---   bekleyip sonra gönderilen bir metrik, 2 saat önceki zaman damgasıyla durmalı.
---
--- SİLME DAVRANIŞI:
---   Tüm FK'ler ON DELETE CASCADE. Cihaz silinince verisi de gider; hesap silinince
---   her şey gider. Yetim (orphan) satır bırakmıyoruz.
+-- Tüm foreign key'ler ON DELETE CASCADE: cihaz silinince ölçümleri, hesap
+-- silinince tüm cihazları ve verileri birlikte silinir.
 -- =============================================================================
 
 
 -- -----------------------------------------------------------------------------
--- GELİŞTİRME SIRASINDA SIFIRLAMA
--- Şemayı baştan kurmak istersen aşağıdaki bloğun yorumunu kaldırıp çalıştır.
--- DİKKAT: tüm veriyi siler. Üretimde ASLA çalıştırma.
+-- Aşağıdaki bloğun yorumu kaldırılırsa altı tablo da verileriyle birlikte
+-- silinir ve şema sıfırdan kurulabilir hale gelir.
+-- DİKKAT: tüm veriyi siler.
 -- -----------------------------------------------------------------------------
 -- drop table if exists commands        cascade;
 -- drop table if exists crash_snapshots cascade;
@@ -46,21 +33,17 @@
 -- =============================================================================
 -- 1) accounts — Supabase Auth kullanıcısının uygulamaya özel uzantısı
 -- =============================================================================
--- auth.users tablosuna dokunamayız (Supabase'in yönettiği şema), bu yüzden
--- kendi alanlarımızı burada tutuyoruz. Satır otomatik açılır: triggers.sql
--- içindeki on_auth_user_created trigger'ı yeni kullanıcı kaydında ekler.
+-- Satırı triggers.sql içindeki on_auth_user_created trigger'ı ekler: auth.users
+-- tablosuna her yeni kayıt düştüğünde aynı id ile burada bir satır açılır.
 create table accounts (
   id             uuid primary key references auth.users(id) on delete cascade,
 
-  -- POLICY (sistem sınırı), config (insan sınırı) DEĞİL — CLAUDE.md §2.
-  -- Kullanıcı bunu dashboard'dan değiştiremez: rls.sql'de accounts için UPDATE
-  -- politikası bilerek tanımlanmadı. Sadece plan yükseltmesiyle (service key ile)
-  -- değişir. Retention job'ı bu değeri okur.
+  -- Retention job'ının (retention.sql) okuduğu değer: bu hesabın satırları kaç
+  -- gün sonra silinecek. rls.sql'de accounts için UPDATE politikası tanımlı
+  -- olmadığından dashboard üzerinden değiştirilemez — policy, config değil.
   retention_days integer     not null default 10,
 
-  -- TraceBox'ın kendi ürün planı (Supabase'in faturalandırma planıyla ilgisi yok).
-  -- Bugün tek değer var; ileride 'pro' eklenince retention_days bununla birlikte
-  -- yükselecek.
+  -- TraceBox'ın kendi ürün planı; Supabase'in faturalandırma planından bağımsız.
   plan           text        not null default 'free',
 
   created_at     timestamptz not null default now()
@@ -70,23 +53,22 @@ create table accounts (
 -- =============================================================================
 -- 2) devices — izlenen makine: kimlik + envanter + durum
 -- =============================================================================
--- Bir satır = bir kurulu agent. Cihazın "kim olduğu" burada; agent bunu bilmez,
--- sadece anahtarını sunar (CLAUDE.md §11 / Boşluk A).
+-- Bir satır = kurulu bir agent. Agent kendi device_id'sini bilmez; yalnızca
+-- anahtarını sunar, sunucu satırı anahtardan bulur (CLAUDE.md §11 / Boşluk A).
 create table devices (
-  -- device_id'yi SUNUCU üretir. Agent kendi kimliğini asla iddia edemez; sahte
-  -- device_id ile başkasının verisine yazma yolu böylece kapanır.
+  -- Değeri sunucu üretir; agent'ın gönderdiği hiçbir alan bu id'yi belirlemez.
   id                  uuid primary key default gen_random_uuid(),
   account_id          uuid not null references accounts(id) on delete cascade,
   device_name         text not null,
 
-  -- Cihaz anahtarının SHA-256'sı. DÜZ ANAHTAR HİÇBİR ZAMAN SAKLANMAZ.
-  -- POST /devices anahtarı bir kez döner; DB sızsa bile anahtarlar kullanılamaz.
-  -- Doğrulama: collector sha256(gelen_anahtar) hesaplar, bu sütunla eşleştirir.
+  -- Cihaz anahtarının SHA-256 özeti; anahtarın düz hali saklanmaz. Doğrulama
+  -- sırasında collector gelen anahtarın özetini hesaplar ve bu sütunla
+  -- constant-time karşılaştırır.
   key_hash            text not null,
 
   -- --- envanter çekirdeği (POST /inventory ile yazılır, üzerine yazma) ---------
-  -- Hepsi nullable: agent bir alanı okuyamazsa (kısıtlı VM, egzotik donanım)
-  -- envanterin tamamı reddedilmesin, elindekini yazsın.
+  -- Hepsi nullable: agent bir alanı okuyamazsa o alan null kalır, envanterin
+  -- geri kalanı yine de yazılır.
   cpu_model           text,
   cpu_cores_physical  integer,
   cpu_cores_logical   integer,
@@ -97,7 +79,7 @@ create table devices (
   os_version          text,
   kernel_version      text,
 
-  -- --- statik eklentiler (sadece config'de enabled_addons içindeyse dolu) ------
+  -- --- statik eklentiler (config'de enabled_addons içindeyse dolu) -------------
   gpu_model           text,
   external_ip         text,
 
@@ -105,55 +87,48 @@ create table devices (
   last_boot           timestamptz,
   agent_version       text,
 
-  -- Cihazda hangi eklentilerin açık olduğu. jsonb dizi: ["swap","load_avg"].
-  -- Neden jsonb (ayrı tablo değil): sabit, kısa, sadece bütün olarak okunan bir
-  -- liste. İlişkisel açmak fayda getirmez — over-engineering yok (§2).
+  -- Cihazda açık olan eklentiler, jsonb dizi olarak: ["swap","load_avg"].
   enabled_addons      jsonb   not null default '[]',
 
-  -- Pause durumunun SUNUCU KOPYASI. Tek doğruluk kaynağı agent'ın state.json'ı
-  -- (single writer); bu sütun sadece dashboard'ın rozet göstermesi için var.
+  -- Pause durumunun sunucu kopyası; dashboard rozeti bu sütunu okur. Tek
+  -- doğruluk kaynağı agent'ın state.json dosyasıdır (single writer).
   logging_enabled     boolean not null default true,
 
-  -- Cihazdan en son ne zaman istek geldi. Offline tespiti bunun üzerinden yapılır
-  -- (ör. now() - last_seen > 2 dk => offline rozeti).
+  -- Cihazdan en son ne zaman istek geldiği. Offline tespiti bu değere bakar
+  -- (ör. now() - last_seen > 2 dk ise offline sayılır).
   last_seen           timestamptz,
 
-  -- Delete akışının ara durumu (CLAUDE.md §6 sıralama kuralı):
-  -- Dashboard "sil" dediğinde satır HEMEN silinmez — bir 'delete' komutu kuyruğa
-  -- girer ve bu bayrak true olur. Agent komutu alıp kendini temizler, ack'ler;
-  -- satırı collector ack anında siler. Erken silseydik agent'ın anahtarı
-  -- geçersizleşir, 401 alır ve delete komutunu hiç göremezdi.
+  -- Delete akışının ara durumu (CLAUDE.md §6). Dashboard "sil" dediğinde satır
+  -- hemen silinmez: kuyruğa bir 'delete' komutu girer ve bu bayrak true olur.
+  -- Satırı, agent komutu uygulayıp ack'ledikten sonra collector siler.
   pending_delete      boolean not null default false,
 
   created_at          timestamptz not null default now()
 );
 
--- Dashboard'ın en sık sorgusu: "bu hesabın cihazları".
+-- Dashboard'ın "bu hesabın cihazları" sorgusunu karşılar.
 create index devices_account_id_idx on devices (account_id);
 
--- Her istekte sha256(anahtar) ile arama yapılıyor. Unique olması hem O(log n)
--- arama sağlar hem de iki cihazın aynı anahtara sahip olmasını imkânsız kılar.
+-- Her istekte sha256(anahtar) ile arama yapılır. Unique olması aynı anahtarın
+-- iki cihaza yazılmasını da engeller.
 create unique index devices_key_hash_key on devices (key_hash);
 
--- Aynı hesap içinde aynı isimli iki cihaz olamaz. Cihazları isimden ayırt eden
--- kullanıcı için "laptop" ve "laptop" karışıklığını en baştan önler.
--- POST /devices bu ihlalde 409 dönecek (M5).
--- Kapsam account_id ile sınırlı: farklı kullanıcılar aynı ismi kullanabilir.
+-- Aynı hesap içinde iki cihaz aynı adı taşıyamaz; ihlalde POST /devices 409
+-- döner (M5). Kapsam account_id ile sınırlı — farklı hesaplar aynı adı
+-- kullanabilir.
 create unique index devices_account_name_key on devices (account_id, device_name);
 
 
 -- =============================================================================
 -- 3) metrics — zaman serisi ölçümler
 -- =============================================================================
--- ŞEKİL KARARI: "SAF A" = düz sütunlar (wide table), key/value satırları değil.
--- Metrik kümesi sabit ve küçük; düz sütun hem daha az yer kaplar hem de
--- dashboard sorguları (avg, max, zaman aralığı) doğrudan çalışır. Key/value
--- şeması esneklik verirdi ama burada esnekliğe ihtiyaç yok (§2 fit-for-purpose).
+-- Bir satır = bir ölçüm anı. Metrikler düz sütunlarda tutulur (key/value satırı
+-- değil), böylece avg/max ve zaman aralığı sorguları doğrudan çalışır.
 create table metrics (
-  -- Bu UUID'yi AGENT üretir (default yok — collector id'siz satır yazamaz).
-  -- Idempotency'nin temeli (CLAUDE.md §11 / Boşluk C): shipper at-least-once
-  -- çalışır, yani ack kaybolursa aynı batch tekrar gönderilir. Sunucu
-  -- INSERT ... ON CONFLICT (id) DO NOTHING ile tekrarı sessizce eler.
+  -- UUID'yi agent üretir; sütunun default'u yoktur, id'siz satır yazılamaz.
+  -- Shipper at-least-once çalıştığından aynı batch tekrar gönderilebilir;
+  -- collector INSERT ... ON CONFLICT (id) DO NOTHING ile tekrarı eler
+  -- (CLAUDE.md §11 / Boşluk C).
   id                uuid primary key,
   device_id         uuid not null references devices(id)  on delete cascade,
   account_id        uuid not null references accounts(id) on delete cascade,
@@ -163,51 +138,52 @@ create table metrics (
   cpu_percent       real,
   ram_used_mb       integer,
   disk_percent      real,
-  -- Ağ: kümülatif sayaç DEĞİL, RATE. Agent iki ölçüm arasındaki farkı alıp
-  -- geçen süreye böler. Ham sayaç gönderilseydi her makine yeniden başladığında
-  -- sayaç sıfırlanır ve grafikte anlamsız negatif sıçrama olurdu.
+
+  -- Ağ değerleri kümülatif sayaç değil rate'tir: agent iki ölçüm arasındaki
+  -- farkı geçen süreye böler ve sonucu buraya yazar.
   net_sent_mb       real,
   net_recv_mb       real,
 
   -- --- eklentiler (config'de kapalıysa null kalır) ----------------------------
   temperature_c     real,
   swap_used_mb      integer,
-  -- load average Linux'a özgü; Windows agent'ında null kalacak. Sütunu şimdiden
-  -- açıyoruz ki platform genişlediğinde şema değişmesin (§2 "en geniş ortak payda").
+
+  -- load average yalnızca Linux'ta okunur; diğer platformlarda null kalır.
   load_avg_1        real,
   load_avg_5        real,
   load_avg_15       real,
+
   gpu_usage_percent real,
   gpu_vram_used_mb  integer
 );
 
--- Dashboard'ın tek sorgu şekli: "şu cihazın şu zaman aralığındaki metrikleri".
--- Sütun sırası önemli: önce eşitlik (device_id), sonra aralık (measured_at).
+-- Dashboard'ın sorgu şekli: "şu cihazın şu zaman aralığındaki metrikleri".
+-- Sütun sırası bu şekle uyar: önce eşitlik (device_id), sonra aralık.
 create index metrics_device_measured_idx on metrics (device_id, measured_at);
 
 
 -- =============================================================================
 -- 4) logs — normalize edilmiş sistem logları
 -- =============================================================================
--- Agent'ın LogSource arayüzü (agent/logsources/base.py) journald / eventlog gibi
--- OS'a özgü çıktıları buradaki sabit şekle çevirir. Tablo hiçbir OS detayı bilmez.
+-- Agent'ın LogSource arayüzü (agent/logsources/base.py) journald gibi OS'a özgü
+-- çıktıları buradaki dört alana çevirir; tablo hiçbir OS detayı tutmaz.
 create table logs (
-  id           uuid primary key,                        -- idempotency (bkz. metrics.id)
+  id           uuid primary key,                        -- agent üretir (bkz. metrics.id)
   device_id    uuid not null references devices(id)  on delete cascade,
   account_id   uuid not null references accounts(id) on delete cascade,
   measured_at  timestamptz not null,
 
-  -- SADECE 4 seviye. journald'ın 8 PRIORITY değeri agent tarafında bunlara
-  -- indirgenir. Az seviye = tutarlı filtre + basit UI. CHECK constraint bunu
-  -- veritabanı seviyesinde garanti eder: bozuk seviye asla giremez.
+  -- Dört seviye kabul edilir; journald'ın 8 PRIORITY değeri agent tarafında
+  -- bunlara indirgenir. CHECK, listede olmayan bir seviyenin yazılmasını
+  -- veritabanı düzeyinde engeller.
   level        text not null check (level in ('info','warning','error','critical')),
 
-  -- Kırpma YOK. Stack trace'in son satırı çoğu zaman en önemli satırdır; ortadan
-  -- kesilen bir hata mesajı işe yaramaz. Postgres text sütunu zaten TOAST ile
-  -- büyük değerleri sıkıştırıp satır dışına taşır.
+  -- Mesaj kırpılmadan saklanır. Postgres büyük değerleri TOAST ile sıkıştırıp
+  -- satır dışına taşır.
   message      text not null,
 
-  -- Logu üreten servis/birim (journald'da _SYSTEMD_UNIT). Her kaynakta yok, nullable.
+  -- Logu üreten servis/birim (journald'da _SYSTEMD_UNIT). Her kaynakta
+  -- bulunmadığı için nullable.
   source       text
 );
 
@@ -217,26 +193,22 @@ create index logs_device_measured_idx on logs (device_id, measured_at);
 -- =============================================================================
 -- 5) crash_snapshots — acil flush anının fotoğrafı
 -- =============================================================================
--- Sadece eşik aşıldığında (cpu/ram/disk yüksek veya error/critical log) yazılır.
--- "Makine neden boğuldu?" sorusunun cevabı: o anda kim kaynak yiyordu.
+-- Satır yalnızca bir eşik aşıldığında yazılır (cpu/ram/disk yüksek ya da
+-- error/critical seviyeli log geldi) ve o anda kaynak tüketen süreçleri tutar.
 create table crash_snapshots (
-  id             uuid primary key,                      -- idempotency
+  id             uuid primary key,                      -- agent üretir
   device_id      uuid not null references devices(id)  on delete cascade,
   account_id     uuid not null references accounts(id) on delete cascade,
   measured_at    timestamptz not null,
 
-  -- Flush'ı hangi eşik tetikledi: 'cpu' | 'ram' | 'disk' | 'log'.
-  -- İSİM NOTU: bu sütun CLAUDE.md §4.2'de "trigger" olarak geçiyordu. TRIGGER
-  -- SQL standardında reserved word; Postgres tırnaksız kabul etse de ORM ve
-  -- migration araçlarında sürekli kaçış gerektiren bir mayın. Adı değiştirildi
-  -- ve wire payload'ındaki alan adı da aynı şekilde güncellendi (tutarlılık).
-  -- CHECK yok: yeni bir tetikleyici türü eklendiğinde (ör. 'manual') veri kaybı
-  -- yaşamayalım — level'dan farklı olarak bu alan filtre değil, açıklama.
+  -- Flush'ı tetikleyen eşik: 'cpu' | 'ram' | 'disk' | 'log'. Sütun adı
+  -- CLAUDE.md §4.2'de "trigger" olarak geçer; TRIGGER SQL'de reserved word
+  -- olduğu için hem şemada hem wire payload'ında trigger_reason kullanılır.
+  -- CHECK tanımlı değil: yeni bir tetikleyici türü eklendiğinde satır reddedilmez.
   trigger_reason text,
 
-  -- [{"name":"chrome","cpu":42.1,"ram_mb":2100}, ...]
-  -- Süreç listesi değişken uzunlukta ve sadece bütün olarak okunuyor; ayrı tablo
-  -- açmak join maliyeti getirir, karşılığında hiçbir sorgu kazandırmaz.
+  -- [{"name":"chrome","cpu":42.1,"ram_mb":2100}, ...] biçiminde, değişken
+  -- uzunlukta süreç listesi; yalnızca bütün olarak okunur.
   processes      jsonb not null
 );
 
@@ -246,33 +218,29 @@ create index crash_snapshots_device_measured_idx on crash_snapshots (device_id, 
 -- =============================================================================
 -- 6) commands — dashboard'dan agent'a kontrol kuyruğu
 -- =============================================================================
--- AKIŞ YÖNÜ: dashboard INSERT eder (pending) -> agent GET /commands ile çeker ->
--- uygular -> bir sonraki /ingest'te id'yi ack'ler -> collector 'applied' yapar.
---
--- NEDEN KUYRUK, NEDEN PUSH DEĞİL: agent NAT arkasında, dinleyen portu yok ve
--- olması da istenmiyor (saldırı yüzeyi). Agent'ın dışarı çıkması, dışarıdan
--- agent'a bağlanılmasından hem güvenli hem basit. Bedeli ~10 sn gecikme.
+-- Akış: dashboard satırı 'pending' olarak INSERT eder -> agent GET /commands ile
+-- çeker -> uygular -> bir sonraki /ingest gövdesinde id'yi ack'ler -> collector
+-- satırı 'applied' yapar. Agent dinleyen port açmaz; komutlar yalnızca bu
+-- kuyruğun yoklanmasıyla ulaşır.
 create table commands (
-  -- Burada default var: komutu SUNUCU üretir (metrics/logs'un tersi).
-  -- Bu id aynı zamanda agent tarafında idempotency anahtarı: aynı komut iki kez
-  -- gelirse (ack kaybolduysa) agent onu tekrar uygulamaz.
+  -- Bu id'yi sunucu üretir (metrics/logs'un tersine default vardır). Agent aynı
+  -- id'yi ikinci kez gördüğünde komutu tekrar uygulamaz.
   id           uuid primary key default gen_random_uuid(),
   device_id    uuid not null references devices(id)  on delete cascade,
   account_id   uuid not null references accounts(id) on delete cascade,
 
-  -- pause  : buluta gönderimi durdur (yerel toplama DEVAM eder — CLAUDE.md §7)
-  -- resume : gönderime devam et, spool'da birikeni eskiden yeniye boşalt
+  -- pause  : buluta gönderimi durdurur, yerel toplama sürer (CLAUDE.md §7)
+  -- resume : gönderime devam eder, spool'da birikeni eskiden yeniye boşaltır
   -- delete : agent'ın tam temizliği / self-uninstall
   type         text not null check (type in ('pause','resume','delete')),
 
-  -- pending -> applied. Tek yönlü; geri dönüş yok. Yeniden denemek isteyen
-  -- dashboard yeni bir komut satırı ekler.
+  -- pending -> applied yönünde tek yönlü ilerler; geri dönüşü yoktur. Komutu
+  -- yeniden denemek için dashboard yeni bir satır ekler.
   status       text not null default 'pending' check (status in ('pending','applied')),
 
   created_at   timestamptz not null default now(),
   applied_at   timestamptz
 );
 
--- Agent'ın 10 saniyede bir attığı sorgu tam olarak bu: bu cihazın bekleyen
--- komutları. En sık çalışan sorgu olduğu için indeks tam bu şekle uyuyor.
+-- Agent'ın komut poll'unda attığı sorgunun şekli: bu cihazın bekleyen komutları.
 create index commands_device_status_idx on commands (device_id, status);
