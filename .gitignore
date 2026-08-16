@@ -37,10 +37,17 @@ venv/
 # oluşabilirler. state.json cihazın kendi durumudur, spool ise gönderilmemiş
 # telemetri — ikisi de makineye özgü, paylaşılacak veri değil.
 state.json
+state.json.*
+agent.lock
 spool.db
 spool.db-*
 *.sqlite
 *.sqlite3
+
+# Yerel geliştirme çalışma alanı: TRACEBOX_CONFIG / TRACEBOX_STATE_DIR bu klasörü
+# gösterdiğinde agent config'ini buradan okur ve state'ini buraya yazar. İçindeki
+# her şey makineye özgüdür — gerçek cihaz anahtarı da buraya yazılabilir.
+dev/
 
 # --- Dashboard (Next.js, M9) -------------------------------------------------
 node_modules/
