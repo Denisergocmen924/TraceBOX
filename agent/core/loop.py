@@ -8,8 +8,8 @@ Tick sabit 1 saniyedir ve config'den okunmaz; collect/send/poll aralıkları
 birbirinden bağımsız sayaçlardır (gerekçe: md/memory/decisions.md → "Döngü
 tabanı").
 
-M1 KAPSAMI: ağ yok, psutil yok, spool yok. Her iş yalnızca ne yapacağını basar.
-İskeletin ritmini ve tek-yazar davranışını doğrulamak için.
+M2 KAPSAMI: ölçüm ve envanter gerçek; ağ, spool ve gönderim yok. Toplanan her
+örnek ekrana basılır ve düşer.
 """
 
 from __future__ import annotations
@@ -17,25 +17,21 @@ from __future__ import annotations
 import signal
 import threading
 import time
-from datetime import datetime, timezone
 
 from agent import __version__
+from agent.core import inventory as inventory_module
+from agent.core.clock import utc_now_iso
 from agent.core.config import Config, ConfigLoader
+from agent.core.metrics import MetricSample, MetricsCollector
 from agent.core.state import State, StateStore
 
 # Döngünün nabzı. Config'e AÇILMAZ: ölçüm sıklığı (insan sınırı) ile döngü ritmi
 # (sistem sabiti) ayrı kavramlardır.
 TICK_SECONDS = 1
 
-
-def _utc_now_iso() -> str:
-    """Wall-clock UTC zaman damgası (ISO 8601).
-
-    Sayaçlar monotonic saat kullanır, damgalar bu fonksiyonu: biri "ne kadar
-    zaman geçti", diğeri "hangi an" sorusunu cevaplar. Sistem saati geriye
-    alındığında sayaçlar etkilenmez.
-    """
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+# Ölçülemeyen alanların ekrandaki karşılığı. Kayıtta bu alanlar null olur;
+# 0 yazmak "yük yoktu" demek olurdu (md/memory/decisions.md → "Ağ metriği").
+UNAVAILABLE = "—"
 
 
 def _log(message: str) -> None:
@@ -44,7 +40,7 @@ def _log(message: str) -> None:
     flush=True: systemd altında stdout bir boruya (pipe) bağlıdır ve tamponlanır;
     tamponlanan satırlar journalctl'de dakikalarca görünmez.
     """
-    print(f"{_utc_now_iso()} {message}", flush=True)
+    print(f"{utc_now_iso()} {message}", flush=True)
 
 
 def _install_stop_signal() -> threading.Event:
@@ -64,13 +60,54 @@ def _install_stop_signal() -> threading.Event:
     return stop
 
 
-def _collect(config: Config) -> None:
-    """Ölçüm ve log toplama adımı — M2/M4'te gerçek toplama buraya bağlanır.
+def _format_sample(sample: MetricSample) -> str:
+    """Ölçümü tek satırlık okunur bir özete çevirir."""
+
+    def value(number, unit: str, digits: int = 1) -> str:
+        return UNAVAILABLE if number is None else f"{number:.{digits}f}{unit}"
+
+    return (
+        f"cpu={value(sample.cpu_percent, '%')} "
+        f"ram={sample.ram_used_mb}MB "
+        f"disk={value(sample.disk_percent, '%')} "
+        f"net↑{value(sample.net_sent_mb, 'MB/s', 3)} "
+        f"net↓{value(sample.net_recv_mb, 'MB/s', 3)}"
+    )
+
+
+def _report_inventory(config: Config, state: State) -> None:
+    """Açılışta envanteri okur ve state'teki bilinen haliyle karşılaştırır.
+
+    known_inventory M2'de GÜNCELLENMEZ: envanterin "gönderilmiş" sayılması için
+    collector'dan 200 alınmış olması gerekir, o da M3'ün işi (açık spec boşluğu
+    #3). Bu yüzden M2'de her açılışta "değişti" görülmesi beklenen davranıştır.
+    """
+    current = inventory_module.collect_inventory(config)
+    _log(
+        f"[start] envanter: {current.os_name} {current.os_version} · "
+        f"{current.cpu_model} · {current.cpu_cores_physical}/{current.cpu_cores_logical} çekirdek · "
+        f"{current.ram_total_mb}MB RAM · {current.disk_total_mb}MB disk · "
+        f"kernel {current.kernel_version} ({current.arch})"
+    )
+    _log(f"[start] açılış zamanı: {current.last_boot}")
+
+    changed = inventory_module.changed_fields(current, state.known_inventory)
+    if not changed:
+        _log("[start] envanter değişmemiş — gönderim gerekmiyor.")
+        return
+
+    reason = "ilk kez okundu" if not state.known_inventory else "değişti"
+    _log(f"[start] envanter {reason}: {len(changed)} alan ({', '.join(sorted(changed))}) — gönderim M3")
+
+
+def _collect(collector: MetricsCollector) -> None:
+    """Ölçüm alma adımı.
 
     Pause'da da çalışır: pause yalnızca buluta göndermeyi durdurur, yerel kaydı
-    değil (CLAUDE.md §7).
+    değil (CLAUDE.md §7). M3'te örnek burada spool'a yazılacak.
     """
-    _log(f"[collect] ölçüm alınacak (her {config.collect_interval_seconds} sn) — M2")
+    sample = collector.collect()
+    _log(f"[collect] {_format_sample(sample)}")
 
 
 def _poll_commands(config: Config) -> None:
@@ -85,11 +122,11 @@ def _poll_commands(config: Config) -> None:
 def _send(config: Config, state: State, store: StateStore) -> None:
     """Gönderim adımı — M3'te spool'un boşaltılması buraya bağlanır.
 
-    M1'de yalnızca last_send'i güncelleyip state'i diske yazar; amaç tek yazarın
-    ve atomik yazmanın gerçekten çalıştığını gözle görülür kılmak.
+    Şimdilik yalnızca last_send'i güncelleyip state'i diske yazar; amaç tek
+    yazarın ve atomik yazmanın gerçekten çalıştığını gözle görülür kılmak.
     """
     _log(f"[send] spool gönderilecek (her {config.send_interval_seconds} sn) — M3")
-    state.last_send = _utc_now_iso()
+    state.last_send = utc_now_iso()
     store.save(state)
 
 
@@ -99,6 +136,7 @@ def run(loader: ConfigLoader, store: StateStore) -> None:
     config = loader.load()
     state = store.load()
     stop = _install_stop_signal()
+    collector = MetricsCollector()
 
     _log(f"[start] TraceBox agent {__version__}")
     _log(f"[start] config: {loader.path}")
@@ -111,7 +149,7 @@ def run(loader: ConfigLoader, store: StateStore) -> None:
         f"poll={config.command_poll_seconds}s (tick={TICK_SECONDS}s)"
     )
     _log(f"[start] logging_enabled={state.logging_enabled}")
-    _log("[start] envanter karşılaştırması — M2")
+    _report_inventory(config, state)
 
     # --- SAYAÇLAR ---
     # Her sayaç kendi "sıradaki çalışma anını" tutar. Karşılaştırmalar
@@ -130,7 +168,7 @@ def run(loader: ConfigLoader, store: StateStore) -> None:
         config = loader.load()
 
         if now >= next_collect:
-            _collect(config)
+            _collect(collector)
             next_collect = now + config.collect_interval_seconds
 
         if now >= next_poll:

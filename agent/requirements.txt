@@ -1,0 +1,18 @@
+# TraceBox Agent — Python bağımlılıkları
+#
+# Sürümler == ile SABİTLENDİ (collector/requirements.txt ile aynı gerekçe):
+# install.sh bu dosyayı /opt/tracebox/venv içine kurar ve her cihaza birebir
+# aynı sürümün gitmesi gerekir. Yükseltme bilinçli bir işlem olmalı.
+
+# Metrik ve envanter kaynağı: CPU, RAM, disk, ağ sayaçları, çekirdek sayısı,
+# açılış zamanı. Platform farklarını kendi içinde soğurur — /proc'u elle
+# ayrıştırmak yerine tek bir arayüz verir (istisna: işlemci MODELİ psutil'de
+# yok, o /proc/cpuinfo'dan okunuyor).
+psutil==7.1.0
+
+# M4'te eklenecek:
+#   systemd-python  -> journald cursor ile log okuma (logsources/linux_journald.py)
+# M3'te eklenecek:
+#   httpx           -> collector'a POST (shipper.py)
+#
+# spool SQLite ile tutulacak: sqlite3 standart kütüphanede, ek bağımlılık yok.
