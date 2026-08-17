@@ -15,7 +15,10 @@ fastapi==0.115.6
 # döngüsü). Ingest yolu çok sayıda küçük POST alacağı için ikisi de işe yarar.
 uvicorn[standard]==0.34.0
 
-# M3'te eklenecek:
-#   httpx        -> Supabase REST API'sine yazma (supabase_client.py)
+# Supabase'in PostgREST arayüzüne yazmak için HTTP istemcisi. async/await
+# desteklediği için FastAPI'nin olay döngüsünü bloklamaz; tek bağlantı havuzu
+# uygulama ömrü boyunca açık kalır (supabase_client.py).
+httpx==0.28.1
+
 # M5'te eklenecek:
 #   pyjwt        -> user JWT doğrulama (auth.py)

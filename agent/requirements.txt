@@ -10,9 +10,12 @@
 # yok, o /proc/cpuinfo'dan okunuyor).
 psutil==7.1.0
 
+# Collector'a POST için HTTP istemcisi (shipper.py). Zaman aşımı, bağlantı
+# havuzu ve TLS doğrulaması tek arayüzde; collector tarafında da aynı kütüphane
+# kullanılıyor.
+httpx==0.28.1
+
 # M4'te eklenecek:
 #   systemd-python  -> journald cursor ile log okuma (logsources/linux_journald.py)
-# M3'te eklenecek:
-#   httpx           -> collector'a POST (shipper.py)
 #
-# spool SQLite ile tutulacak: sqlite3 standart kütüphanede, ek bağımlılık yok.
+# spool SQLite ile tutulur: sqlite3 standart kütüphanede, ek bağımlılık yok.

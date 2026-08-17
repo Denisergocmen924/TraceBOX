@@ -207,3 +207,17 @@ Sıra önemli: trigger'lar `accounts` tablosuna referans verir, policy'ler de he
 ## Durum
 
 Aktif geliştirme aşamasında. Proje **vertical slice**'lar hâlinde inşa ediliyor — her adım yatay bir katman değil, uçtan uca çalışan ince bir yol.
+
+---
+
+## License
+
+TraceBOX is licensed under the TraceBOX License v1.0.
+
+See [LICENSE](./LICENSE) for the complete license terms.
+
+## Lisans
+
+TraceBOX, TraceBOX License v1.0 ile lisanslanmıştır.
+
+Lisansın tam şartları için [LICENSE](./LICENSE) dosyasına bakınız.

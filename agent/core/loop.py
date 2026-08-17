@@ -8,8 +8,8 @@ Tick sabit 1 saniyedir ve config'den okunmaz; collect/send/poll aralıkları
 birbirinden bağımsız sayaçlardır (gerekçe: md/memory/decisions.md → "Döngü
 tabanı").
 
-M2 KAPSAMI: ölçüm ve envanter gerçek; ağ, spool ve gönderim yok. Toplanan her
-örnek ekrana basılır ve düşer.
+M3 KAPSAMI: ölçümler spool'a yazılıp collector'a gönderilir. Loglar M4'te,
+komut poll'u M6'da, acil flush M7'de bu döngüye bağlanacak.
 """
 
 from __future__ import annotations
@@ -17,12 +17,16 @@ from __future__ import annotations
 import signal
 import threading
 import time
+from dataclasses import asdict
 
 from agent import __version__
 from agent.core import inventory as inventory_module
 from agent.core.clock import utc_now_iso
 from agent.core.config import Config, ConfigLoader
+from agent.core.inventory import Inventory
 from agent.core.metrics import MetricSample, MetricsCollector
+from agent.core.shipper import Shipper
+from agent.core.spool import RECORD_METRIC, Spool
 from agent.core.state import State, StateStore
 
 # Döngünün nabzı. Config'e AÇILMAZ: ölçüm sıklığı (insan sınırı) ile döngü ritmi
@@ -75,17 +79,18 @@ def _format_sample(sample: MetricSample) -> str:
     )
 
 
-def _report_inventory(config: Config, state: State) -> None:
-    """Açılışta envanteri okur ve state'teki bilinen haliyle karşılaştırır.
+def _startup_inventory(config: Config, state: State) -> Inventory | None:
+    """Envanteri okur; gönderilmesi gerekiyorsa onu döndürür, gerekmiyorsa None.
 
-    known_inventory M2'de GÜNCELLENMEZ: envanterin "gönderilmiş" sayılması için
-    collector'dan 200 alınmış olması gerekir, o da M3'ün işi (açık spec boşluğu
-    #3). Bu yüzden M2'de her açılışta "değişti" görülmesi beklenen davranıştır.
+    Dönen değer gönderilene kadar bellekte bekler; `known_inventory` ancak
+    collector'dan 200 alındıktan sonra yazılır (md/memory/decisions.md →
+    "Envanter gönderimi").
     """
     current = inventory_module.collect_inventory(config)
     _log(
         f"[start] envanter: {current.os_name} {current.os_version} · "
-        f"{current.cpu_model} · {current.cpu_cores_physical}/{current.cpu_cores_logical} çekirdek · "
+        f"{current.cpu_model} · "
+        f"{current.cpu_cores_physical}/{current.cpu_cores_logical} çekirdek · "
         f"{current.ram_total_mb}MB RAM · {current.disk_total_mb}MB disk · "
         f"kernel {current.kernel_version} ({current.arch})"
     )
@@ -94,19 +99,24 @@ def _report_inventory(config: Config, state: State) -> None:
     changed = inventory_module.changed_fields(current, state.known_inventory)
     if not changed:
         _log("[start] envanter değişmemiş — gönderim gerekmiyor.")
-        return
+        return None
 
     reason = "ilk kez okundu" if not state.known_inventory else "değişti"
-    _log(f"[start] envanter {reason}: {len(changed)} alan ({', '.join(sorted(changed))}) — gönderim M3")
+    _log(
+        f"[start] envanter {reason}: {len(changed)} alan "
+        f"({', '.join(sorted(changed))}) — gönderilecek"
+    )
+    return current
 
 
-def _collect(collector: MetricsCollector) -> None:
-    """Ölçüm alma adımı.
+def _collect(collector: MetricsCollector, spool: Spool) -> None:
+    """Ölçüm alıp spool'a yazar.
 
     Pause'da da çalışır: pause yalnızca buluta göndermeyi durdurur, yerel kaydı
-    değil (CLAUDE.md §7). M3'te örnek burada spool'a yazılacak.
+    değil (CLAUDE.md §7).
     """
     sample = collector.collect()
+    spool.add(RECORD_METRIC, asdict(sample))
     _log(f"[collect] {_format_sample(sample)}")
 
 
@@ -119,15 +129,38 @@ def _poll_commands(config: Config) -> None:
     _log(f"[poll] komut sorulacak (her {config.command_poll_seconds} sn) — M6")
 
 
-def _send(config: Config, state: State, store: StateStore) -> None:
-    """Gönderim adımı — M3'te spool'un boşaltılması buraya bağlanır.
+def _send_inventory(
+    shipper: Shipper, config: Config, state: State, store: StateStore, pending: Inventory
+) -> Inventory | None:
+    """Envanteri gönderir; 200 alınırsa state'e işler ve None döndürür."""
+    result = shipper.send_inventory(config, pending.as_dict())
+    if not result.ok:
+        _log(f"[send] envanter gönderilemedi: {result.detail}")
+        return pending
 
-    Şimdilik yalnızca last_send'i güncelleyip state'i diske yazar; amaç tek
-    yazarın ve atomik yazmanın gerçekten çalıştığını gözle görülür kılmak.
-    """
-    _log(f"[send] spool gönderilecek (her {config.send_interval_seconds} sn) — M3")
-    state.last_send = utc_now_iso()
+    state.known_inventory = pending.as_dict()
     store.save(state)
+    _log("[send] envanter gönderildi.")
+    return None
+
+
+def _send_spool(
+    shipper: Shipper, config: Config, state: State, store: StateStore, spool: Spool
+) -> None:
+    """Spool'u gönderir; başarılıysa last_send'i günceller."""
+    result = shipper.send_pending(config, state.applied_command_ids)
+    if not result.ok:
+        _log(
+            f"[send] gönderilemedi: {result.detail} — {spool.count()} kayıt bekliyor, "
+            f"{shipper.backoff_seconds:.0f} sn sonra tekrar denenecek."
+        )
+        return
+
+    if result.sent:
+        state.last_send = utc_now_iso()
+        store.save(state)
+
+    _log(f"[send] {result.sent} kayıt gönderildi (spool: {spool.count()}).")
 
 
 def run(loader: ConfigLoader, store: StateStore) -> None:
@@ -137,10 +170,17 @@ def run(loader: ConfigLoader, store: StateStore) -> None:
     state = store.load()
     stop = _install_stop_signal()
     collector = MetricsCollector()
+    spool = Spool(
+        store.directory,
+        max_age_days=config.spool_max_age_days,
+        max_size_mb=config.spool_max_size_mb,
+    )
+    shipper = Shipper(spool)
 
     _log(f"[start] TraceBox agent {__version__}")
     _log(f"[start] config: {loader.path}")
     _log(f"[start] state:  {store.path}")
+    _log(f"[start] spool:  {spool.path} ({spool.count()} bekleyen kayıt)")
     _log(f"[start] hedef:  {config.collector_url}")
     _log(
         "[start] aralıklar: "
@@ -149,7 +189,7 @@ def run(loader: ConfigLoader, store: StateStore) -> None:
         f"poll={config.command_poll_seconds}s (tick={TICK_SECONDS}s)"
     )
     _log(f"[start] logging_enabled={state.logging_enabled}")
-    _report_inventory(config, state)
+    pending_inventory = _startup_inventory(config, state)
 
     # --- SAYAÇLAR ---
     # Her sayaç kendi "sıradaki çalışma anını" tutar. Karşılaştırmalar
@@ -160,33 +200,42 @@ def run(loader: ConfigLoader, store: StateStore) -> None:
     next_send = now + config.send_interval_seconds
 
     # --- KALP ATIŞI ---
-    while not stop.is_set():
-        now = time.monotonic()
+    try:
+        while not stop.is_set():
+            now = time.monotonic()
 
-        # Config her turda yeniden okunur; dosya değişmediyse önbellekten gelir.
-        # Aralık değişikliği bir sonraki sayaç kurulumunda geçerli olur.
-        config = loader.load()
+            # Config her turda yeniden okunur; dosya değişmediyse önbellekten
+            # gelir. Aralık değişikliği bir sonraki sayaç kurulumunda geçerli olur.
+            config = loader.load()
 
-        if now >= next_collect:
-            _collect(collector)
-            next_collect = now + config.collect_interval_seconds
+            if now >= next_collect:
+                _collect(collector, spool)
+                next_collect = now + config.collect_interval_seconds
 
-        if now >= next_poll:
-            _poll_commands(config)
-            next_poll = now + config.command_poll_seconds
+            if now >= next_poll:
+                _poll_commands(config)
+                next_poll = now + config.command_poll_seconds
 
-        # Aşağısı yalnızca gönderim açıkken çalışır. Pause sırasında next_send
-        # ileri ALINMAZ: süresi geçmiş halde bekler, böylece resume anında
-        # birikmiş veri ilk turda çıkar.
-        if state.logging_enabled and now >= next_send:
-            _send(config, state, store)
-            next_send = now + config.send_interval_seconds
+            # Aşağısı yalnızca gönderim açıkken çalışır. Pause sırasında
+            # next_send ileri ALINMAZ: süresi geçmiş halde bekler, böylece
+            # resume anında birikmiş veri ilk turda çıkar. Backoff sırasında da
+            # aynı şekilde beklenir — süre dolunca ilk tick gönderimi yapar.
+            if state.logging_enabled and now >= next_send and shipper.ready():
+                if pending_inventory is not None:
+                    pending_inventory = _send_inventory(
+                        shipper, config, state, store, pending_inventory
+                    )
 
-        # sleep yerine wait: sinyal geldiğinde tick'in bitmesini beklemeden
-        # uyanır, kapanma anında hissedilir gecikme olmaz.
-        stop.wait(TICK_SECONDS)
+                _send_spool(shipper, config, state, store, spool)
+                next_send = now + config.send_interval_seconds
 
-    # --- KAPANIŞ ---
-    # Durum diskte zaten günceldir (her save anında yazıldı); burada yalnızca
-    # kapanışın temiz olduğu bildirilir.
-    _log("[stop] döngü durdu.")
+            # sleep yerine wait: sinyal geldiğinde tick'in bitmesini beklemeden
+            # uyanır, kapanma anında hissedilir gecikme olmaz.
+            stop.wait(TICK_SECONDS)
+    finally:
+        # --- KAPANIŞ ---
+        # Durum diskte zaten günceldir (her save anında yazıldı); burada yalnızca
+        # açık dosya ve bağlantılar kapatılır.
+        shipper.close()
+        spool.close()
+        _log("[stop] döngü durdu.")
