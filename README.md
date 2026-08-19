@@ -212,12 +212,12 @@ Aktif geliştirme aşamasında. Proje **vertical slice**'lar hâlinde inşa edil
 
 ## License
 
-TraceBOX is licensed under the TraceBOX License v1.0.
+TraceBox is licensed under the TraceBox License v1.0.
 
 See [LICENSE](./LICENSE) for the complete license terms.
 
 ## Lisans
 
-TraceBOX, TraceBOX License v1.0 ile lisanslanmıştır.
+TraceBox, TraceBox License v1.0 ile lisanslanmıştır.
 
 Lisansın tam şartları için [LICENSE](./LICENSE) dosyasına bakınız.

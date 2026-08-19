@@ -1,4 +1,4 @@
-# TraceBOX License v1.0
+# TraceBox License v1.0
 
 **Effective Date / Yürürlük Tarihi: 17 August 2026**
 
@@ -10,7 +10,7 @@
 
 ## 1. Lisansın Kapsamı
 
-Bu lisans, **TraceBOX** projesi ve bu proje ile birlikte dağıtılan tüm içerikler için geçerlidir.
+Bu lisans, **TraceBox** projesi ve bu proje ile birlikte dağıtılan tüm içerikler için geçerlidir.
 
 Bunlara aşağıdakiler dahildir:
 
@@ -24,7 +24,7 @@ Bunlara aşağıdakiler dahildir:
 * Proje dosyaları
 * Diğer repository içerikleri
 
-TraceBOX kaynak kodunun kamuya açık olması, bu yazılımın açık kaynak lisansı altında olduğu anlamına gelmez.
+TraceBox kaynak kodunun kamuya açık olması, bu yazılımın açık kaynak lisansı altında olduğu anlamına gelmez.
 
 Bu lisans, **source-available / özel kullanım lisansıdır**.
 
@@ -48,7 +48,7 @@ Bu izinler devredilemez ve bu lisans tarafından açıkça izin verilmeyen başk
 
 ## 3. Ticari Kullanım
 
-TraceBOX, Denis Ergöçmen'in önceden verilmiş yazılı izni olmadan **ticari amaçlarla kullanılamaz**.
+TraceBox, Denis Ergöçmen'in önceden verilmiş yazılı izni olmadan **ticari amaçlarla kullanılamaz**.
 
 Buna aşağıdakiler dahildir:
 
@@ -77,16 +77,16 @@ Yazılımın tamamının veya önemli bir bölümünün başka bir projeye kopya
 Özellikle aşağıdakiler Denis Ergöçmen'in yazılı izni olmadan yapılamaz:
 
 * Kaynak kodunun büyük bölümlerini başka projelere aktarmak
-* TraceBOX'ı başka bir yazılımın parçası haline getirmek
-* TraceBOX'ı kütüphane veya paket haline getirmek
-* TraceBOX'ı framework veya template haline getirmek
-* TraceBOX kaynak kodunu başka bir geliştirici aracına dahil etmek
+* TraceBox'ı başka bir yazılımın parçası haline getirmek
+* TraceBox'ı kütüphane veya paket haline getirmek
+* TraceBox'ı framework veya template haline getirmek
+* TraceBox kaynak kodunu başka bir geliştirici aracına dahil etmek
 
 Bununla birlikte, bağımsız ve küçük kod parçalarının kullanılması bu lisans tarafından ayrıca yasaklanmamaktadır.
 
 ## 6. Dağıtım
 
-Denis Ergöçmen'in önceden verilmiş yazılı izni olmadan TraceBOX'ın veya kaynak kodunun:
+Denis Ergöçmen'in önceden verilmiş yazılı izni olmadan TraceBox'ın veya kaynak kodunun:
 
 * Başka kişilere verilmesi
 * Başka platformlarda yayınlanması
@@ -99,13 +99,13 @@ yasaktır.
 
 ## 7. Uzaktan Kullanım ve Hosting
 
-TraceBOX, başkalarının uzaktan erişebilmesi veya kullanabilmesi amacıyla bir sunucuya, web servisine veya benzeri bir altyapıya yerleştirilemez.
+TraceBox, başkalarının uzaktan erişebilmesi veya kullanabilmesi amacıyla bir sunucuya, web servisine veya benzeri bir altyapıya yerleştirilemez.
 
 Kullanıcının kendi cihazında çalıştırması bu madde kapsamında yasak değildir.
 
 ## 8. Entegrasyon
 
-TraceBOX, Denis Ergöçmen'in yazılı izni olmadan başka bir yazılım veya hizmet ile entegre edilerek bu yazılımın bir bileşeni haline getirilemez.
+TraceBox, Denis Ergöçmen'in yazılı izni olmadan başka bir yazılım veya hizmet ile entegre edilerek bu yazılımın bir bileşeni haline getirilemez.
 
 Buna API, servis bağlantısı, plugin, modül, paket veya benzeri entegrasyon yöntemleri dahildir.
 
@@ -135,21 +135,21 @@ Lisans veya telif hakkı bildirimlerinin kaldırılması veya değiştirilmesi y
 
 Denis Ergöçmen'in adı, başka bir projenin sahibi veya geliştiricisiymiş gibi gösterilemez.
 
-## 11. TraceBOX Markası
+## 11. TraceBox Markası
 
-**TraceBOX** adı, TraceBOX logosu ve proje ile ilişkili diğer marka unsurları bu lisans kapsamında kullanım hakkı verilen kaynak kodundan bağımsızdır.
+**TraceBox** adı, TraceBox logosu ve proje ile ilişkili diğer marka unsurları bu lisans kapsamında kullanım hakkı verilen kaynak kodundan bağımsızdır.
 
 Denis Ergöçmen'in yazılı izni olmadan:
 
-* TraceBOX adı başka bir projenin adı olarak kullanılamaz.
-* TraceBOX logosu başka bir projede kullanılamaz.
-* TraceBOX adı veya logosu reklam amacıyla kullanılamaz.
-* Başka bir proje TraceBOX'ın resmi devamı gibi gösterilemez.
+* TraceBox adı başka bir projenin adı olarak kullanılamaz.
+* TraceBox logosu başka bir projede kullanılamaz.
+* TraceBox adı veya logosu reklam amacıyla kullanılamaz.
+* Başka bir proje TraceBox'ın resmi devamı gibi gösterilemez.
 * Başka bir proje Denis Ergöçmen tarafından geliştirilmiş veya onaylanmış gibi gösterilemez.
 
 ## 12. Kişisel ve Ticari Olmayan Kullanım
 
-Kişisel veya ticari olmayan kullanım izni, TraceBOX'ın bağımsız bir yazılım olarak çalıştırılmasını kapsar.
+Kişisel veya ticari olmayan kullanım izni, TraceBox'ın bağımsız bir yazılım olarak çalıştırılmasını kapsar.
 
 Bu izin:
 
@@ -163,7 +163,7 @@ hakkı vermez.
 
 ## 13. Güvenlik Araştırması
 
-TraceBOX üzerinde:
+TraceBox üzerinde:
 
 * Güvenlik araştırması
 * Güvenlik testi
@@ -180,7 +180,7 @@ Bu lisans, güvenlik açığının kamuya açıklanmasından önce zorunlu bir b
 
 Bu lisans kapsamında verilen haklar, lisans şartlarının ihlal edilmesi halinde **otomatik olarak sona erer**.
 
-Lisans hakkı sona eren kişi veya kuruluş, TraceBOX'ı kullanmayı ve bu lisans tarafından yasaklanan faaliyetleri derhal durdurmalıdır.
+Lisans hakkı sona eren kişi veya kuruluş, TraceBox'ı kullanmayı ve bu lisans tarafından yasaklanan faaliyetleri derhal durdurmalıdır.
 
 Lisans şartlarına uygun şekilde verilen izinler süresizdir.
 
@@ -196,15 +196,15 @@ Kullanıcı:
 
 ## 16. Katkılar
 
-TraceBOX projesine kabul edilen katkılar, proje sahibi tarafından kabul edildiği ölçüde bu lisansın şartlarına tabi olarak kullanılabilir.
+TraceBox projesine kabul edilen katkılar, proje sahibi tarafından kabul edildiği ölçüde bu lisansın şartlarına tabi olarak kullanılabilir.
 
 Katkıda bulunan kişiler kendi katkıları üzerindeki sahip oldukları hakları korurlar.
 
-Bir katkının TraceBOX projesine gönderilmesi, katkıda bulunan kişinin söz konusu katkıyı projede kullanma hakkına sahip olduğunu beyan ettiği anlamına gelir.
+Bir katkının TraceBox projesine gönderilmesi, katkıda bulunan kişinin söz konusu katkıyı projede kullanma hakkına sahip olduğunu beyan ettiği anlamına gelir.
 
 ## 17. Garanti ve Sorumluluk Reddi
 
-TraceBOX **"OLDUĞU GİBİ" (AS IS)** sunulmaktadır.
+TraceBox **"OLDUĞU GİBİ" (AS IS)** sunulmaktadır.
 
 Denis Ergöçmen, yazılımın:
 
@@ -219,7 +219,7 @@ Yürürlükteki hukukun izin verdiği azami ölçüde Denis Ergöçmen, yazılı
 
 ## 18. Gelecek Sürümler
 
-Denis Ergöçmen, TraceBOX'ın gelecekteki sürümlerini farklı bir lisans altında yayınlama hakkını saklı tutar.
+Denis Ergöçmen, TraceBox'ın gelecekteki sürümlerini farklı bir lisans altında yayınlama hakkını saklı tutar.
 
 Bu lisans altında yayınlanmış önceki sürümler, açıkça farklı bir lisans belirtilmediği sürece bu lisansın şartlarına tabi olmaya devam eder.
 
@@ -231,11 +231,11 @@ Ancak bu durum:
 
 * Denis Ergöçmen'in ilgili projenin sahibi olduğunu,
 * Denis Ergöçmen'in ilgili projeyi geliştirdiğini,
-* İlgili projenin TraceBOX ile ilişkili olduğunu
+* İlgili projenin TraceBox ile ilişkili olduğunu
 
 göstermez.
 
-**TraceBOX** adı ve marka unsurları bu izin kapsamında değildir.
+**TraceBox** adı ve marka unsurları bu izin kapsamında değildir.
 
 ## 20. Dil
 
@@ -260,7 +260,7 @@ https://github.com/Denisergocmen924
 
 ## 1. Scope
 
-This license applies to the **TraceBOX** project and all content distributed with the project.
+This license applies to the **TraceBox** project and all content distributed with the project.
 
 This includes:
 
@@ -274,7 +274,7 @@ This includes:
 * Project files
 * Other repository contents
 
-The public availability of the TraceBOX source code does not mean that the software is released under an open-source license.
+The public availability of the TraceBox source code does not mean that the software is released under an open-source license.
 
 This is a **source-available / custom license**.
 
@@ -298,7 +298,7 @@ These permissions are non-transferable and do not grant any rights not expressly
 
 ## 3. Commercial Use
 
-TraceBOX may not be used for **commercial purposes** without prior written permission from Denis Ergöçmen.
+TraceBox may not be used for **commercial purposes** without prior written permission from Denis Ergöçmen.
 
 This includes:
 
@@ -327,16 +327,16 @@ Copying or incorporating the whole software or a substantial portion of its sour
 Without prior written permission from Denis Ergöçmen, users may not:
 
 * Transfer substantial portions of the source code into another project
-* Make TraceBOX part of another software product
-* Turn TraceBOX into a library or package
-* Turn TraceBOX into a framework or template
-* Incorporate substantial TraceBOX source code into another developer tool
+* Make TraceBox part of another software product
+* Turn TraceBox into a library or package
+* Turn TraceBox into a framework or template
+* Incorporate substantial TraceBox source code into another developer tool
 
 The use of isolated, small, and independent code snippets is not separately prohibited by this license.
 
 ## 6. Distribution
 
-Without prior written permission from Denis Ergöçmen, TraceBOX or its source code may not be:
+Without prior written permission from Denis Ergöçmen, TraceBox or its source code may not be:
 
 * Given to other persons
 * Published on other platforms
@@ -347,13 +347,13 @@ Without prior written permission from Denis Ergöçmen, TraceBOX or its source c
 
 ## 7. Remote Use and Hosting
 
-TraceBOX may not be placed on a server, web service, or similar infrastructure for remote access or use by other persons without prior written permission.
+TraceBox may not be placed on a server, web service, or similar infrastructure for remote access or use by other persons without prior written permission.
 
 Running the software on the user's own device is not prohibited by this section.
 
 ## 8. Integration
 
-Without prior written permission from Denis Ergöçmen, TraceBOX may not be integrated with another software product or service in a way that makes TraceBOX a component of that software or service.
+Without prior written permission from Denis Ergöçmen, TraceBox may not be integrated with another software product or service in a way that makes TraceBox a component of that software or service.
 
 This includes API integrations, service connections, plugins, modules, packages, and similar integration mechanisms.
 
@@ -381,21 +381,21 @@ Removing or modifying copyright or license notices is prohibited.
 
 Denis Ergöçmen's name may not be represented as the owner or developer of another project.
 
-## 11. TraceBOX Trademark and Project Identity
+## 11. TraceBox Trademark and Project Identity
 
-The **TraceBOX** name, TraceBOX logo, and other project-identifying marks are separate from the rights granted to the source code under this license.
+The **TraceBox** name, TraceBox logo, and other project-identifying marks are separate from the rights granted to the source code under this license.
 
 Without written permission from Denis Ergöçmen:
 
-* The TraceBOX name may not be used as the name of another project.
-* The TraceBOX logo may not be used in another project.
-* The TraceBOX name or logo may not be used for advertising.
-* Another project may not be represented as an official continuation of TraceBOX.
+* The TraceBox name may not be used as the name of another project.
+* The TraceBox logo may not be used in another project.
+* The TraceBox name or logo may not be used for advertising.
+* Another project may not be represented as an official continuation of TraceBox.
 * Another project may not be represented as developed or approved by Denis Ergöçmen.
 
 ## 12. Personal and Non-Commercial Use
 
-The personal and non-commercial use permission covers running TraceBOX as an independent software application.
+The personal and non-commercial use permission covers running TraceBox as an independent software application.
 
 It does not grant permission to:
 
@@ -417,7 +417,7 @@ This license does not impose a mandatory waiting period before public disclosure
 
 The rights granted under this license automatically terminate upon violation of its terms.
 
-Any person or organization whose rights have terminated must immediately cease using TraceBOX and all activities prohibited by this license.
+Any person or organization whose rights have terminated must immediately cease using TraceBox and all activities prohibited by this license.
 
 Rights granted in compliance with this license are perpetual.
 
@@ -433,15 +433,15 @@ Users may not:
 
 ## 16. Contributions
 
-Accepted contributions to the TraceBOX project may be used by the project under the terms of this license to the extent accepted by the project owner.
+Accepted contributions to the TraceBox project may be used by the project under the terms of this license to the extent accepted by the project owner.
 
 Contributors retain the rights they hold in their contributions.
 
-By submitting a contribution to TraceBOX, the contributor represents that they have the necessary rights to submit that contribution for use in the project.
+By submitting a contribution to TraceBox, the contributor represents that they have the necessary rights to submit that contribution for use in the project.
 
 ## 17. Disclaimer of Warranty and Liability
 
-TraceBOX is provided **"AS IS"**.
+TraceBox is provided **"AS IS"**.
 
 Denis Ergöçmen does not warrant that the software is:
 
@@ -454,7 +454,7 @@ To the maximum extent permitted by applicable law, Denis Ergöçmen shall not be
 
 ## 18. Future Versions
 
-Denis Ergöçmen reserves the right to release future versions of TraceBOX under a different license.
+Denis Ergöçmen reserves the right to release future versions of TraceBox under a different license.
 
 Versions previously released under this license remain subject to this license unless expressly released under a different license.
 
@@ -466,9 +466,9 @@ However, such use does not indicate that:
 
 * Denis Ergöçmen owns the other project,
 * Denis Ergöçmen developed the other project,
-* The other project is affiliated with TraceBOX.
+* The other project is affiliated with TraceBox.
 
-The **TraceBOX** name and branding are not included in this permission.
+The **TraceBox** name and branding are not included in this permission.
 
 ## 20. Language
 
@@ -493,4 +493,4 @@ https://github.com/Denisergocmen924
 
 **Copyright © 2026 Denis Ergöçmen. All rights reserved.**
 
-**TraceBOX License v1.0**
+**TraceBox License v1.0**
