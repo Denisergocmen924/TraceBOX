@@ -16,6 +16,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from auth import AuthenticatedDevice, DeviceIdentity
+from version import COLLECTOR_VERSION
 from supabase_client import SupabaseError, get_client
 
 router = APIRouter()
@@ -164,16 +165,35 @@ async def post_ingest(payload: IngestIn, device: AuthenticatedDevice) -> dict:
 
 @router.get("/verify")
 async def get_verify(device: AuthenticatedDevice) -> dict:
-    """Kurulum sonu bağlantı testi — anahtar geçerliyse 200 (CLAUDE.md §8)."""
-    return {"status": "ok", "device_name": device.device_name}
+    """Kurulum sonu bağlantı testi — anahtar geçerliyse 200 (CLAUDE.md §8).
+
+    Collector sürümü burada döner: kimliksiz uçlardan (`GET /`) alınmıştı, çünkü
+    sürüm ifşası keşif kolaylığıdır (security_bugs.md B2). Bu uç zaten cihaz
+    anahtarı istiyor, yani yeni bir kilit takmak yerine mevcut kilidin arkasına
+    taşındı. Deploy sonrası "hangi sürüm canlıda?" sorusunun cevabı da burası.
+    """
+    return {
+        "status": "ok",
+        "device_name": device.device_name,
+        "version": COLLECTOR_VERSION,
+    }
 
 
 def _row(item: BaseModel, device: DeviceIdentity) -> dict[str, Any]:
-    """Payload kaydını tablo satırına çevirir: uuid → id, kimlik alanları eklenir."""
+    """Payload kaydını tablo satırına çevirir: uuid → id, kimlik ve varış zamanı eklenir.
+
+    `measured_at` agent'ta kalır — ölçümün GERÇEKTEN ne zaman alındığını yalnızca
+    o bilir ve çöküşten sonra geç gönderilen veri de doğru anı taşımalıdır
+    (CLAUDE.md §0). Ama retention (silme işi) ona bakamaz: damgayı geleceğe atan
+    veya saati bozuk bir cihazın verisi asla "eski" olmaz ve sonsuza kadar
+    birikirdi. Bu yüzden `received_at`'i SUNUCU yazar ve silme ona bakar
+    (md/memory/decisions.md → "Retention ölçütü received_at olur").
+    """
     row = item.model_dump(mode="json")
     row[ID_COLUMN] = row.pop(UUID_FIELD)
     row["device_id"] = device.id
     row["account_id"] = device.account_id
+    row["received_at"] = _server_now()
     return row
 
 

@@ -4,6 +4,10 @@
 --
 -- ÇALIŞTIRMA SIRASI:  schema.sql  ->  triggers.sql  ->  [rls.sql]
 --
+-- Bu dosya SIFIRDAN kurulum içindir. Zaten kurulmuş bir veritabanında yetki/politika
+-- değiştirmek için db/migrations/ kullanılır; değişiklik İKİSİNE BİRDEN yazılır
+-- (kural: db/migrations/README.md).
+--
 -- İKİ AYRI YAZMA/OKUMA YOLU (CLAUDE.md §11 / Boşluk D):
 --
 --   YAZMA:  Agent -> Collector (Fly.io) -> Supabase   [service key]
@@ -162,6 +166,32 @@ create policy ins_commands on public.commands
         and d.account_id = (select auth.uid())
     )
   );
+
+-- -----------------------------------------------------------------------------
+-- 5b) commands — KOLON BAZLI INSERT kısıtı
+-- -----------------------------------------------------------------------------
+-- 3b ile AYNI SORUN, aynı çözüm. ins_commands politikası satırın KİME ait
+-- olduğunu doğruluyor ama hangi SÜTUNLARIN doldurulabileceğini söylemiyor.
+-- Tek başına bırakılırsa kullanıcı komutu eklerken status'ü de kendisi yazar:
+--
+--   insert into commands (device_id, account_id, type, status)
+--   values (..., 'delete', 'applied');   -- 'pending' yerine
+--
+-- Sonuç: agent yalnızca status='pending' olanları çektiği için komut ona HİÇ
+-- ulaşmaz, ama dashboard'da "uygulandı" görünür. Kullanıcı kendi cihazını
+-- durdurduğunu sanır, cihaz çalışmaya devam eder. applied_at da aynı şekilde
+-- uydurulabilirdi — komut geçmişi bir denetim kaydı olduğu için yanıltıcı
+-- olması tek başına bir sorun.
+--
+-- status/applied_at'in tek yazarı collector'dır (agent'ın ack'i üzerine).
+-- Kullanıcının gerçekten belirlediği üç alan kalıyor: hangi cihaz, hangi hesap,
+-- hangi komut. id ve created_at şemadaki DEFAULT'tan gelir, o yüzden listede yok.
+revoke insert on public.commands from anon, authenticated;
+grant insert (device_id, account_id, type) on public.commands to authenticated;
+
+-- anon (giriş yapmamış) hiçbir sütunu ekleyemez — grant verilmedi.
+-- service_role etkilenmez; collector RLS ve kolon yetkilerini bypass eder.
+
 
 -- UPDATE politikası YOK: pending -> applied geçişini yalnızca collector yapar
 -- (agent'ın ack'i üzerine). Kullanıcı bir komutu "uygulanmış" işaretleyebilseydi

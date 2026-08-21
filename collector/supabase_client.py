@@ -36,6 +36,47 @@ PREFER_IGNORE_DUPLICATES = "resolution=ignore-duplicates,return=minimal"
 # okumaya gerek yok.
 PREFER_MINIMAL = "return=minimal"
 
+# Collector'ın `devices` satırında yazmasına izin verilen sütunlar.
+#
+# Bu liste bir YETKİ sınırıdır; `endpoints_ingest.InventoryIn` ise agent'ın ne
+# gönderdiğini tarif eden bir SÖZLEŞMEDİR. İkisi bilerek ayrı tutulur: allowlist
+# modelden türetilseydi, modele eklenen her alan kendiliğinden yazma izni
+# kazanır ve bu ikinci duvar hiç var olmazdı.
+#
+# Listede ASLA yer almayacaklar ve nedenleri:
+#   id, account_id  — cihazın hangi hesaba ait olduğunu tanımlar. Yazılabilir
+#                     olsalardı bir cihaz kendini başka bir hesaba taşıyıp o
+#                     hesabın dashboard'una veri enjekte edebilirdi.
+#   key_hash        — kimlik kanıtının kendisi; cihaz kendi anahtarını seçemez.
+#   device_name     — dashboard'un alanı (db/rls.sql: grant update (device_name)).
+#   logging_enabled — pause/resume durumu; sunucu kopyasını kimin yazacağı M6'da
+#   pending_delete    karara bağlanacak (md/memory/pending.md #7). O karar
+#                     verilene kadar collector dokunmaz.
+#
+# Buraya sütun eklemek bilinçli bir güvenlik kararıdır; gerekçesi
+# md/memory/decisions.md'ye yazılır.
+DEVICE_WRITABLE_COLUMNS = frozenset(
+    {
+        # agent'ın envanterden bildirdikleri (InventoryIn ile aynı 14 alan)
+        "cpu_model",
+        "cpu_cores_physical",
+        "cpu_cores_logical",
+        "arch",
+        "ram_total_mb",
+        "disk_total_mb",
+        "os_name",
+        "os_version",
+        "kernel_version",
+        "last_boot",
+        "agent_version",
+        "gpu_model",
+        "external_ip",
+        "enabled_addons",
+        # sunucunun damgaladığı
+        "last_seen",
+    }
+)
+
 
 class SupabaseError(RuntimeError):
     """Supabase'e yazma/okuma başarısız oldu."""
@@ -73,7 +114,25 @@ class SupabaseClient:
         return rows[0] if rows else None
 
     async def update_device(self, device_id: str, fields: dict[str, Any]) -> None:
-        """Cihaz satırının verilen sütunlarının üzerine yazar."""
+        """Cihaz satırının verilen sütunlarının üzerine yazar.
+
+        Yalnızca `DEVICE_WRITABLE_COLUMNS` içindeki sütunlara dokunulur. Bu
+        kontrol, çağıran katmandaki doğrulamanın (Pydantic `extra="forbid"`)
+        ikinci duvarıdır: service key RLS'i bypass ettiği için burada yakalanmayan
+        bir sütun doğrudan Postgres'e yazılırdı.
+        """
+        forbidden = sorted(set(fields) - DEVICE_WRITABLE_COLUMNS)
+        if forbidden:
+            # Yalnızca sütun ADLARI loglanır — değerler loglanmaz; reddedilen
+            # alan `key_hash` gibi bir sır olabilir.
+            logger.error(
+                "devices güncellemesi reddedildi — izinsiz sütun: %s",
+                ", ".join(forbidden),
+            )
+            raise ValueError(
+                f"devices tablosunda yazılamayacak sütun(lar): {', '.join(forbidden)}"
+            )
+
         await self._request(
             "PATCH",
             "/devices",
@@ -106,11 +165,36 @@ class SupabaseClient:
 
         if response.is_error:
             logger.error(
-                "Supabase %s %s → %s: %s", method, path, response.status_code, response.text[:300]
+                "Supabase %s %s → %s (kod: %s)",
+                method,
+                path,
+                response.status_code,
+                _error_code(response),
             )
             raise SupabaseError(f"{method} {path}: {response.status_code}")
 
         return response
+
+
+def _error_code(response: httpx.Response) -> str:
+    """PostgREST hata yanıtından yalnızca `code` alanını çıkarır.
+
+    Yanıtın geri kalanı (`message`, `details`, `hint`) bilerek loglanmaz:
+    PostgREST bu alanlarda reddedilen satırın İÇERİĞİNİ geri gönderebilir ve o
+    içerik kullanıcının sistem log'u olabilir. Log'a düşerse veri, veritabanının
+    dışında ikinci bir yerde daha durmuş olur (`fly logs`).
+
+    Hata kodu ise sabit bir Postgres numarasıdır (23505 = tekrar eden anahtar,
+    23503 = eksik foreign key); veri taşımaz ama arızayı teşhis etmeye yeter.
+    """
+    try:
+        body = response.json()
+    except ValueError:
+        return "?"
+
+    if isinstance(body, dict) and body.get("code"):
+        return str(body["code"])
+    return "?"
 
 
 _client: SupabaseClient | None = None

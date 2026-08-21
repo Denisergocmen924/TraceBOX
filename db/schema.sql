@@ -2,6 +2,11 @@
 -- TraceBox — db/schema.sql
 -- 6 tablo, indeksler ve foreign key'ler.
 --
+-- Bu dosya SIFIRDAN kurulum içindir: tabloların ŞU ANKİ halini anlatır ve boş bir
+-- veritabanına çalıştırılır. Zaten kurulmuş bir veritabanını güncellemek için
+-- db/migrations/ kullanılır. Şema değişince İKİSİ BİRDEN güncellenir —
+-- kural: db/migrations/README.md.
+--
 -- accounts.id ile auth.users.id aynı UUID'dir; RLS politikaları bu sayede
 -- doğrudan "account_id = auth.uid()" karşılaştırmasına iner (CLAUDE.md §5).
 --
@@ -9,8 +14,18 @@
 -- yanında denormalize tutulur: satırın sahibi devices tablosuna join atılmadan
 -- bilinir.
 --
--- measured_at değerini agent yazar; satırın sunucuya ulaştığı anı değil,
--- ölçümün makinede alındığı anı gösterir.
+-- İKİ ZAMAN DAMGASI — ikisi ayrı sorulara cevap verir:
+--   measured_at  AGENT yazar. Ölçümün makinede alındığı an. Zaman çizelgesi ve
+--                grafikler buna bakar. Cihaz çöküşten sonra veriyi saatler
+--                sonra gönderse bile gerçek an korunur (CLAUDE.md §0).
+--   received_at  SUNUCU yazar (collector). Satırın collector'a ulaştığı an.
+--                RETENTION (silme işi) buna bakar.
+--
+-- Silme neden measured_at'e bakamaz: o alanı cihaz doldurur. Damgayı geleceğe
+-- atan (ya da yalnızca saati bozuk olan) bir cihazın verisi asla "eski" olmaz
+-- ve sonsuza kadar birikirdi — yani satırın silinip silinmeyeceğine verinin
+-- sahibi karar verirdi. received_at'e cihaz dokunamaz.
+-- (md/memory/security_bugs.md B5)
 --
 -- Tüm foreign key'ler ON DELETE CASCADE: cihaz silinince ölçümleri, hesap
 -- silinince tüm cihazları ve verileri birlikte silinir.
@@ -133,6 +148,7 @@ create table metrics (
   device_id         uuid not null references devices(id)  on delete cascade,
   account_id        uuid not null references accounts(id) on delete cascade,
   measured_at       timestamptz not null,
+  received_at       timestamptz not null default now(),
 
   -- --- çekirdek (her zaman toplanır) -----------------------------------------
   cpu_percent       real,
@@ -161,6 +177,10 @@ create table metrics (
 -- Sütun sırası bu şekle uyar: önce eşitlik (device_id), sonra aralık.
 create index metrics_device_measured_idx on metrics (device_id, measured_at);
 
+-- Retention her gece 'received_at eskiyse sil' taraması yapar; account_id ile
+-- birleşik indeks bu taramayı hesap bazında hedefler (db/retention.sql, M8).
+create index metrics_account_received_idx on metrics (account_id, received_at);
+
 
 -- =============================================================================
 -- 4) logs — normalize edilmiş sistem logları
@@ -172,6 +192,7 @@ create table logs (
   device_id    uuid not null references devices(id)  on delete cascade,
   account_id   uuid not null references accounts(id) on delete cascade,
   measured_at  timestamptz not null,
+  received_at  timestamptz not null default now(),
 
   -- Dört seviye kabul edilir; journald'ın 8 PRIORITY değeri agent tarafında
   -- bunlara indirgenir. CHECK, listede olmayan bir seviyenin yazılmasını
@@ -189,6 +210,10 @@ create table logs (
 
 create index logs_device_measured_idx on logs (device_id, measured_at);
 
+-- Retention her gece 'received_at eskiyse sil' taraması yapar; account_id ile
+-- birleşik indeks bu taramayı hesap bazında hedefler (db/retention.sql, M8).
+create index logs_account_received_idx on logs (account_id, received_at);
+
 
 -- =============================================================================
 -- 5) crash_snapshots — acil flush anının fotoğrafı
@@ -200,6 +225,7 @@ create table crash_snapshots (
   device_id      uuid not null references devices(id)  on delete cascade,
   account_id     uuid not null references accounts(id) on delete cascade,
   measured_at    timestamptz not null,
+  received_at    timestamptz not null default now(),
 
   -- Flush'ı tetikleyen eşik: 'cpu' | 'ram' | 'disk' | 'log'. Sütun adı
   -- CLAUDE.md §4.2'de "trigger" olarak geçer; TRIGGER SQL'de reserved word
@@ -213,6 +239,10 @@ create table crash_snapshots (
 );
 
 create index crash_snapshots_device_measured_idx on crash_snapshots (device_id, measured_at);
+
+-- Retention her gece 'received_at eskiyse sil' taraması yapar; account_id ile
+-- birleşik indeks bu taramayı hesap bazında hedefler (db/retention.sql, M8).
+create index crash_snapshots_account_received_idx on crash_snapshots (account_id, received_at);
 
 
 -- =============================================================================
