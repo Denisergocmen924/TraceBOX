@@ -1,0 +1,54 @@
+# TraceBox — Continuous Integration
+#
+# Her master push'unda ve her pull request'te tüm test suite'ini çalıştırır.
+# Amaç: bir davranış sözleşmesi sessizce bozulduğunda bunu insan gözüne
+# bakmadan yakalamak.
+#
+# Bu iş HİÇBİR secret kullanmaz. Testler ne Supabase'e ne Fly'a bağlanır;
+# bağlanmaları gerekseydi CI, üretim anahtarlarını taşımak zorunda kalırdı.
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+  # PR'lar ayrıca koşar; böylece master'a girmeden önce sonuç bellidir.
+  pull_request:
+
+# Varsayılan token yalnızca kodu okuyabilsin. Bu iş hiçbir şey yazmıyor.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodu çek
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          # collector/Dockerfile ile AYNI sürüm. Geliştirme makinesi daha yeni
+          # bir Python kullanabilir; CI'ın söz verdiği şey üretimde çalışacağıdır.
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            collector/requirements.txt
+            agent/requirements.txt
+            requirements-dev.txt
+
+      - name: Bağımlılıkları kur
+        # Üç dosya birden: testler hem collector'ı (fastapi, httpx) hem agent'ı
+        # (psutil) import eder, pytest'in kendisi ise yalnızca geliştirme
+        # bağımlılığıdır ve üretim image'ına girmez.
+        run: |
+          pip install --upgrade pip
+          pip install -r collector/requirements.txt \
+                      -r agent/requirements.txt \
+                      -r requirements-dev.txt
+
+      - name: Testleri çalıştır
+        # Yapılandırma pytest.ini'den okunur (testpaths, pythonpath).
+        run: pytest
