@@ -3,8 +3,7 @@ Envanter — makinenin künyesi ve değişiklik tespiti.
 
 Envanter, metriklerin aksine NADİREN değişir: işlemci modeli, çekirdek sayısı,
 toplam RAM, disk, işletim sistemi sürümü. Bu yüzden ayrı bir uç noktaya gider
-(POST /inventory) ve devices satırının üzerine yazılır — zaman serisi değildir
-(CLAUDE.md §4.2, §5).
+(POST /inventory) ve devices satırının üzerine yazılır — zaman serisi değildir.
 
 Statik eklentiler (gpu_model, external_ip) M7'de bu modüle eklenecek.
 

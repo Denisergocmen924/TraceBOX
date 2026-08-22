@@ -2,7 +2,7 @@
 Spool — gönderilmeyi bekleyen kayıtların disk üzerindeki sırası.
 
 Toplanan her kayıt önce buraya yazılır, ancak collector'dan 200 alındıktan
-sonra silinir (CLAUDE.md §7). Ağ kesilse, collector kapalı olsa ya da agent
+sonra silinir. Ağ kesilse, collector kapalı olsa ya da agent
 yeniden başlasa da veri kaybolmaz.
 
 Kapasite bir halka tampondur (ring buffer): yaş ve boyut sınırı aşıldığında en
@@ -21,7 +21,7 @@ from pathlib import Path
 SPOOL_DIRNAME = "spool"
 SPOOL_FILENAME = "spool.db"
 
-# Tür etiketi (CLAUDE.md §7). Bugün üç türün ortak bir bütçesi var; etiket
+# Tür etiketi. Bugün üç türün ortak bir bütçesi var; etiket
 # sayesinde tür başına bütçeye geçiş tek kural değişikliğidir.
 RECORD_METRIC = "metric"
 RECORD_LOG = "log"

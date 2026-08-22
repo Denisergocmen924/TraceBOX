@@ -1,11 +1,9 @@
 """
 Çalışma durumu — state.json'u okur ve yazar.
 
-Bu dosyanın TEK YAZARI agent'tır (CLAUDE.md §2, §4.4). Collector da dashboard da
+Bu dosyanın TEK YAZARI agent'tır. Collector da dashboard da
 state.json'a dokunmaz; sunucu tarafındaki karşılıkları (devices.logging_enabled
 gibi) ayrı sütunlardır ve agent'ın bildirdiğinin kopyasıdır.
-
-Alanların anlamı: CLAUDE.md §4.4.
 """
 
 from __future__ import annotations
@@ -31,7 +29,7 @@ class State:
     """Agent'ın yeniden başlatmalar arasında hatırladığı her şey."""
 
     # Buluta gönderim açık mı. pause komutu false, resume true yapar; toplama ve
-    # spool'a yazma her iki durumda da sürer (CLAUDE.md §7).
+    # spool'a yazma her iki durumda da sürer.
     logging_enabled: bool = True
 
     # En son gönderilmiş envanterin çekirdek alanları. Açılışta okunan envanter

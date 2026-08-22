@@ -3,7 +3,7 @@ Shipper — spool'daki kayıtları collector'a gönderir.
 
 Teslim garantisi **at-least-once**: kayıt yalnızca 200 alındıktan sonra
 spool'dan silinir. Ağ hatası tekrar göndermeye yol açabilir; her kaydın taşıdığı
-UUID sayesinde sunucu tekrarı eler (CLAUDE.md §11, Boşluk C).
+UUID sayesinde sunucu tekrarı eler.
 
 Başarısız denemeler üstel backoff ile seyrekleşir: kapalı bir collector'a her
 turda yüklenmek ne veriyi kurtarır ne de bağlantıyı geri getirir.
@@ -30,13 +30,13 @@ BATCH_ROWS = 500
 MAX_BATCHES_PER_CYCLE = 5
 
 # Collector'ın yanıt vermesi için beklenen süre. Aşılırsa kayıtlar spool'da
-# kalır ve bir sonraki turda tekrar denenir (CLAUDE.md §7).
+# kalır ve bir sonraki turda tekrar denenir.
 REQUEST_TIMEOUT_SECONDS = 10.0
 
 BACKOFF_INITIAL_SECONDS = 10.0
 BACKOFF_MAX_SECONDS = 300.0
 
-# Spool tür etiketinin wire gövdesindeki karşılığı (CLAUDE.md §4.2).
+# Spool tür etiketinin wire gövdesindeki karşılığı.
 PAYLOAD_KEYS = {
     RECORD_METRIC: "metrics",
     RECORD_LOG: "logs",

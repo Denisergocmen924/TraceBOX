@@ -3,7 +3,7 @@ Kimlik doğrulama — cihaz anahtarı modu.
 
 Cihaz kimliği payload'dan değil ANAHTARDAN türetilir: collector `sha256(key)`
 hesaplar, `devices.key_hash` ile eşleştirir ve satırdan `device_id` +
-`account_id` alır (CLAUDE.md §11, Boşluk A).
+`account_id` alır.
 
 User JWT modu (`POST /devices`) M5'te bu modüle eklenecek.
 """

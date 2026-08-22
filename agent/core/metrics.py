@@ -1,7 +1,7 @@
 """
 Ölçüm toplama — psutil ile CPU, RAM, disk ve ağ.
 
-Çekirdek metrikler (CLAUDE.md §4.2): cpu_percent, ram_used_mb, disk_percent,
+Çekirdek metrikler: cpu_percent, ram_used_mb, disk_percent,
 net_sent_mb, net_recv_mb. Eklenti alanları (sıcaklık, swap, load average, GPU)
 M7'de bu modüle eklenecek; şu an toplanmıyor.
 
@@ -33,8 +33,7 @@ class MetricSample:
     """Tek bir ölçüm anı — metrics tablosundaki bir satıra karşılık gelir.
 
     uuid agent tarafından üretilir: aynı örnek ağ hatası yüzünden iki kez
-    gönderilse bile sunucu ON CONFLICT (id) DO NOTHING ile tekrarı eler
-    (CLAUDE.md §11, Boşluk C).
+    gönderilse bile sunucu ON CONFLICT (id) DO NOTHING ile tekrarı eler.
     """
 
     uuid: str
@@ -53,7 +52,7 @@ class MetricsCollector:
     bu yana" hesaplanır. Bu yüzden toplayıcı bir nesnedir: önceki sayaçları
     bellekte taşır. Sayaçlar bilerek state.json'a yazılmaz — agent saatlerce
     kapalı kaldıysa aradaki farkı "hız" diye kaydetmek anlamsız bir ortalama
-    üretirdi (karar: md/memory/decisions.md → "Ağ metriği birimi").
+    üretirdi.
     """
 
     def __init__(self, disk_mount_point: str = DISK_MOUNT_POINT) -> None:

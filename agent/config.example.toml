@@ -12,7 +12,7 @@
 collector_url = "https://tracebox-collector.fly.dev"
 
 # Cihaz anahtarı. Agent'ın kimliği yalnızca bu değerdir: device_id'yi sunucu
-# anahtardan çözer (CLAUDE.md §11 / Boşluk A). Sunucuda düz hali değil SHA-256
+# anahtardan çözer. Sunucuda düz hali değil SHA-256
 # özeti saklanır (devices.key_hash), bu yüzden kaybedilen anahtar geri alınamaz.
 device_key = "tbx_live_BURAYA_ANAHTARINI_YAZ"
 

@@ -9,7 +9,6 @@
 --     silinmeyeceğine, verinin sahibi karar veriyordu. Saatini ileri almış
 --     bir cihazın verisi asla "eski" olmaz, sonsuza kadar birikirdi.
 --     `received_at`'i SUNUCU (collector) yazar; retention artık ona bakar.
---     Bulgu: security_bugs.md → B5.
 --
 -- TARİH: 2026-08-21 — canlı Supabase'de aynı gün elle çalıştırıldı. Bu dosya
 --     o değişikliğin kayda geçmiş halidir; yeni bir ortam bundan kurulur.

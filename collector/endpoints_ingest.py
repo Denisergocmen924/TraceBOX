@@ -2,8 +2,7 @@
 Cihazdan gelen yazma uçları: POST /inventory, POST /ingest, GET /verify.
 
 Üçü de cihaz anahtarı ile korunur. Payload'da `device_id` YOKTUR; satırlara
-`device_id` ve `account_id` doğrulanmış anahtardan eklenir (CLAUDE.md §11,
-Boşluk A).
+`device_id` ve `account_id` doğrulanmış anahtardan eklenir.
 """
 
 from __future__ import annotations
@@ -26,7 +25,7 @@ router = APIRouter()
 MAX_ROWS_PER_TABLE = 1000
 
 # Payload alan adı ile sütun adının ayrıştığı tek yer: agent'ın ürettiği UUID
-# tabloda birincil anahtardır (CLAUDE.md §4.2 / §5).
+# tabloda birincil anahtardır.
 UUID_FIELD = "uuid"
 ID_COLUMN = "id"
 
@@ -119,7 +118,7 @@ class IngestIn(_Payload):
         list[CrashSnapshotIn], Field(max_length=MAX_ROWS_PER_TABLE)
     ] = Field(default_factory=list)
     # M6'da işlenecek: ack edilen komutlar 'applied' yapılacak, delete komutu
-    # cihaz satırının silinmesini tetikleyecek (CLAUDE.md §6).
+    # cihaz satırının silinmesini tetikleyecek.
     applied_command_ids: list[UUID] = Field(default_factory=list)
 
 
@@ -141,8 +140,7 @@ async def post_ingest(payload: IngestIn, device: AuthenticatedDevice) -> dict:
     """Ölçüm, log ve çöküş kayıtlarını yazar.
 
     Tablolar ayrı isteklerle yazılır; ortada bir hata olursa istemci tüm batch'i
-    tekrar gönderir ve daha önce yazılmış satırlar `id` çakışmasıyla elenir
-    (CLAUDE.md §11, Boşluk C).
+    tekrar gönderir ve daha önce yazılmış satırlar `id` çakışmasıyla elenir.
     """
     client = get_client()
     tables = (
@@ -165,10 +163,10 @@ async def post_ingest(payload: IngestIn, device: AuthenticatedDevice) -> dict:
 
 @router.get("/verify")
 async def get_verify(device: AuthenticatedDevice) -> dict:
-    """Kurulum sonu bağlantı testi — anahtar geçerliyse 200 (CLAUDE.md §8).
+    """Kurulum sonu bağlantı testi — anahtar geçerliyse 200.
 
     Collector sürümü burada döner: kimliksiz uçlardan (`GET /`) alınmıştı, çünkü
-    sürüm ifşası keşif kolaylığıdır (security_bugs.md B2). Bu uç zaten cihaz
+    sürüm ifşası keşif kolaylığıdır. Bu uç zaten cihaz
     anahtarı istiyor, yani yeni bir kilit takmak yerine mevcut kilidin arkasına
     taşındı. Deploy sonrası "hangi sürüm canlıda?" sorusunun cevabı da burası.
     """
@@ -183,11 +181,10 @@ def _row(item: BaseModel, device: DeviceIdentity) -> dict[str, Any]:
     """Payload kaydını tablo satırına çevirir: uuid → id, kimlik ve varış zamanı eklenir.
 
     `measured_at` agent'ta kalır — ölçümün GERÇEKTEN ne zaman alındığını yalnızca
-    o bilir ve çöküşten sonra geç gönderilen veri de doğru anı taşımalıdır
-    (CLAUDE.md §0). Ama retention (silme işi) ona bakamaz: damgayı geleceğe atan
+    o bilir ve çöküşten sonra geç gönderilen veri de doğru anı taşımalıdır.
+    Ama retention (silme işi) ona bakamaz: damgayı geleceğe atan
     veya saati bozuk bir cihazın verisi asla "eski" olmaz ve sonsuza kadar
-    birikirdi. Bu yüzden `received_at`'i SUNUCU yazar ve silme ona bakar
-    (md/memory/decisions.md → "Retention ölçütü received_at olur").
+    birikirdi. Bu yüzden `received_at`'i SUNUCU yazar ve silme ona bakar.
     """
     row = item.model_dump(mode="json")
     row[ID_COLUMN] = row.pop(UUID_FIELD)
@@ -201,7 +198,7 @@ def _server_now() -> str:
     """`last_seen` için sunucu saati.
 
     Agent'ın damgası kullanılmaz: saati kaymış bir cihaz aksi halde offline
-    tespitini yanıltırdı (md/memory/decisions.md → "Envanterin measured_at'i").
+    tespitini yanıltırdı.
     """
     return datetime.now(timezone.utc).isoformat()
 
@@ -210,7 +207,7 @@ async def _write(operation) -> None:
     """Supabase çağrısını çalıştırır; hatayı 503'e çevirir.
 
     503, agent'a "veriyi tut, sonra tekrar dene" demektir; spool kaydı ancak 200
-    sonrası silinir (CLAUDE.md §7).
+    sonrası silinir.
     """
     try:
         await operation()

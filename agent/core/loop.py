@@ -1,12 +1,11 @@
 """
 Kalp atışı — agent'ın tek ve sonsuz döngüsü.
 
-Döngü TEK thread'dir (CLAUDE.md §7): ikinci bir thread state.json'a ikinci bir
+Döngü TEK thread'dir: ikinci bir thread state.json'a ikinci bir
 yazar eklerdi. Tüm işler tick sayaçlarıyla sıraya girer.
 
 Tick sabit 1 saniyedir ve config'den okunmaz; collect/send/poll aralıkları
-birbirinden bağımsız sayaçlardır (gerekçe: md/memory/decisions.md → "Döngü
-tabanı").
+birbirinden bağımsız sayaçlardır.
 
 M3 KAPSAMI: ölçümler spool'a yazılıp collector'a gönderilir. Loglar M4'te,
 komut poll'u M6'da, acil flush M7'de bu döngüye bağlanacak.
@@ -34,7 +33,7 @@ from agent.core.state import State, StateStore
 TICK_SECONDS = 1
 
 # Ölçülemeyen alanların ekrandaki karşılığı. Kayıtta bu alanlar null olur;
-# 0 yazmak "yük yoktu" demek olurdu (md/memory/decisions.md → "Ağ metriği").
+# 0 yazmak "yük yoktu" demek olurdu.
 UNAVAILABLE = "—"
 
 
@@ -83,8 +82,7 @@ def _startup_inventory(config: Config, state: State) -> Inventory | None:
     """Envanteri okur; gönderilmesi gerekiyorsa onu döndürür, gerekmiyorsa None.
 
     Dönen değer gönderilene kadar bellekte bekler; `known_inventory` ancak
-    collector'dan 200 alındıktan sonra yazılır (md/memory/decisions.md →
-    "Envanter gönderimi").
+    collector'dan 200 alındıktan sonra yazılır.
     """
     current = inventory_module.collect_inventory(config)
     _log(
@@ -113,7 +111,7 @@ def _collect(collector: MetricsCollector, spool: Spool) -> None:
     """Ölçüm alıp spool'a yazar.
 
     Pause'da da çalışır: pause yalnızca buluta göndermeyi durdurur, yerel kaydı
-    değil (CLAUDE.md §7).
+    değil.
     """
     sample = collector.collect()
     spool.add(RECORD_METRIC, asdict(sample))

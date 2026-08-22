@@ -8,7 +8,7 @@
 -- kural: db/migrations/README.md.
 --
 -- accounts.id ile auth.users.id aynı UUID'dir; RLS politikaları bu sayede
--- doğrudan "account_id = auth.uid()" karşılaştırmasına iner (CLAUDE.md §5).
+-- doğrudan "account_id = auth.uid()" karşılaştırmasına iner.
 --
 -- metrics / logs / crash_snapshots tablolarında account_id, device_id'nin
 -- yanında denormalize tutulur: satırın sahibi devices tablosuna join atılmadan
@@ -17,7 +17,7 @@
 -- İKİ ZAMAN DAMGASI — ikisi ayrı sorulara cevap verir:
 --   measured_at  AGENT yazar. Ölçümün makinede alındığı an. Zaman çizelgesi ve
 --                grafikler buna bakar. Cihaz çöküşten sonra veriyi saatler
---                sonra gönderse bile gerçek an korunur (CLAUDE.md §0).
+--                sonra gönderse bile gerçek an korunur.
 --   received_at  SUNUCU yazar (collector). Satırın collector'a ulaştığı an.
 --                RETENTION (silme işi) buna bakar.
 --
@@ -25,7 +25,6 @@
 -- atan (ya da yalnızca saati bozuk olan) bir cihazın verisi asla "eski" olmaz
 -- ve sonsuza kadar birikirdi — yani satırın silinip silinmeyeceğine verinin
 -- sahibi karar verirdi. received_at'e cihaz dokunamaz.
--- (md/memory/security_bugs.md B5)
 --
 -- Tüm foreign key'ler ON DELETE CASCADE: cihaz silinince ölçümleri, hesap
 -- silinince tüm cihazları ve verileri birlikte silinir.
@@ -69,7 +68,7 @@ create table accounts (
 -- 2) devices — izlenen makine: kimlik + envanter + durum
 -- =============================================================================
 -- Bir satır = kurulu bir agent. Agent kendi device_id'sini bilmez; yalnızca
--- anahtarını sunar, sunucu satırı anahtardan bulur (CLAUDE.md §11 / Boşluk A).
+-- anahtarını sunar, sunucu satırı anahtardan bulur.
 create table devices (
   -- Değeri sunucu üretir; agent'ın gönderdiği hiçbir alan bu id'yi belirlemez.
   id                  uuid primary key default gen_random_uuid(),
@@ -113,7 +112,7 @@ create table devices (
   -- (ör. now() - last_seen > 2 dk ise offline sayılır).
   last_seen           timestamptz,
 
-  -- Delete akışının ara durumu (CLAUDE.md §6). Dashboard "sil" dediğinde satır
+  -- Delete akışının ara durumu. Dashboard "sil" dediğinde satır
   -- hemen silinmez: kuyruğa bir 'delete' komutu girer ve bu bayrak true olur.
   -- Satırı, agent komutu uygulayıp ack'ledikten sonra collector siler.
   pending_delete      boolean not null default false,
@@ -142,8 +141,7 @@ create unique index devices_account_name_key on devices (account_id, device_name
 create table metrics (
   -- UUID'yi agent üretir; sütunun default'u yoktur, id'siz satır yazılamaz.
   -- Shipper at-least-once çalıştığından aynı batch tekrar gönderilebilir;
-  -- collector INSERT ... ON CONFLICT (id) DO NOTHING ile tekrarı eler
-  -- (CLAUDE.md §11 / Boşluk C).
+  -- collector INSERT ... ON CONFLICT (id) DO NOTHING ile tekrarı eler.
   id                uuid primary key,
   device_id         uuid not null references devices(id)  on delete cascade,
   account_id        uuid not null references accounts(id) on delete cascade,
@@ -227,9 +225,9 @@ create table crash_snapshots (
   measured_at    timestamptz not null,
   received_at    timestamptz not null default now(),
 
-  -- Flush'ı tetikleyen eşik: 'cpu' | 'ram' | 'disk' | 'log'. Sütun adı
-  -- CLAUDE.md §4.2'de "trigger" olarak geçer; TRIGGER SQL'de reserved word
-  -- olduğu için hem şemada hem wire payload'ında trigger_reason kullanılır.
+  -- Flush'ı tetikleyen eşik: 'cpu' | 'ram' | 'disk' | 'log'. TRIGGER SQL'de
+  -- reserved word olduğu için sütun ve wire payload alanı trigger_reason adını
+  -- taşır.
   -- CHECK tanımlı değil: yeni bir tetikleyici türü eklendiğinde satır reddedilmez.
   trigger_reason text,
 
@@ -259,7 +257,7 @@ create table commands (
   device_id    uuid not null references devices(id)  on delete cascade,
   account_id   uuid not null references accounts(id) on delete cascade,
 
-  -- pause  : buluta gönderimi durdurur, yerel toplama sürer (CLAUDE.md §7)
+  -- pause  : buluta gönderimi durdurur, yerel toplama sürer
   -- resume : gönderime devam eder, spool'da birikeni eskiden yeniye boşaltır
   -- delete : agent'ın tam temizliği / self-uninstall
   type         text not null check (type in ('pause','resume','delete')),

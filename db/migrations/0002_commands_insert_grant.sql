@@ -15,7 +15,6 @@
 --     ulaşmaz. Ama dashboard'da "uygulandı" görünür. Kullanıcı cihazını
 --     sildiğini sanır, cihaz çalışmaya devam eder. Komut geçmişi bir denetim
 --     kaydıdır; yanıltıcı olması tek başına sorundur.
---     Bulgu: security_bugs.md → B7.
 --
 -- TARİH: 2026-08-21 — canlı Supabase'de aynı gün elle çalıştırıldı.
 -- =============================================================================

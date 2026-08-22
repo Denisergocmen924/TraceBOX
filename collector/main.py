@@ -1,7 +1,7 @@
 """
 TraceBox Collector — FastAPI uygulamasının giriş noktası.
 
-Collector, cihazların buluta açılan tek yazma kapısıdır (CLAUDE.md §1):
+Collector, cihazların buluta açılan tek yazma kapısıdır:
 
     [Agent] --device key/TLS--> [Collector: Fly.io] --service key--> [Supabase]
 
@@ -49,8 +49,7 @@ app = FastAPI(
     # yetmez: /redoc ve /openapi.json FastAPI varsayılanı olarak açık kalır ve
     # asıl içerik (tam API sözleşmesi) /openapi.json'dadır — /docs ise onu
     # görüntüleyen arayüzden ibarettir. Sözleşme public repo'da zaten açık;
-    # kapatmanın amacı gizlilik değil, canlı adresin kimliksiz konuşmaması
-    # (bkz. security_bugs.md B1).
+    # kapatmanın amacı gizlilik değil, canlı adresin kimliksiz konuşmaması.
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
@@ -65,7 +64,7 @@ async def root() -> dict:
 
     Sürüm BİLEREK yok: kimliksiz bir uçtan verilen sürüm numarası, saldırganın
     ilk adımı olan "hedefi tanıma"yı bedava kolaylaştırır. Sürüm, zaten cihaz
-    anahtarıyla korumalı olan GET /verify yanıtında (security_bugs.md B2).
+    anahtarıyla korumalı olan GET /verify yanıtında.
     """
     return {"service": "tracebox-collector"}
 

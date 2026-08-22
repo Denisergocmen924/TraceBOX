@@ -2,7 +2,6 @@
 Yapılandırma okuyucu — config.toml'u okur, doğrular ve Config nesnesine çevirir.
 
 Bu modül yalnızca OKUR. Agent'ın yazdığı tek dosya state.json'dır (state.py).
-Alanların anlamı ve varsayılanları: CLAUDE.md §4.3.
 """
 
 from __future__ import annotations
@@ -18,7 +17,7 @@ from pathlib import Path
 DEFAULT_CONFIG_PATH = Path("/etc/tracebox/config.toml")
 CONFIG_PATH_ENV_VAR = "TRACEBOX_CONFIG"
 
-# send_interval_seconds için alt sınır (CLAUDE.md §4.3). Config'e daha küçük bir
+# send_interval_seconds için alt sınır. Config'e daha küçük bir
 # değer yazılırsa sessizce yok sayılmaz: floor uygulanır ve uyarı basılır.
 MIN_SEND_INTERVAL_SECONDS = 10
 
@@ -134,9 +133,9 @@ class ConfigLoader:
     """Config dosyasını okur ve dosya değişene kadar önbellekte tutar.
 
     Döngü her tick'te (saniyede bir) load() çağırır; böylece kullanıcının
-    config.toml'da yaptığı değişiklik servisi yeniden başlatmadan geçerli olur
-    (CLAUDE.md §7). Her çağrıda dosyayı yeniden AYRIŞTIRMAK gereksiz olduğu için
-    mtime + boyut karşılaştırılır, yalnızca değiştiyse yeniden okunur.
+    config.toml'da yaptığı değişiklik servisi yeniden başlatmadan geçerli olur.
+    Her çağrıda dosyayı yeniden AYRIŞTIRMAK gereksiz olduğu için mtime + boyut
+    karşılaştırılır, yalnızca değiştiyse yeniden okunur.
     """
 
     def __init__(self, path: Path | None = None, *, warn=print) -> None:

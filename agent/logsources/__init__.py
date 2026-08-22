@@ -1,7 +1,7 @@
 """
 agent.logsources — işletim sistemine özgü log okuyucular.
 
-SÖZLEŞME (CLAUDE.md §4.1): her okuyucu LogSource soyut sınıfını uygular ve
+SÖZLEŞME: her okuyucu LogSource soyut sınıfını uygular ve
 kendi OS'unun çıktısını sabit LogRecord şekline normalize eder:
 
     {timestamp, level, message, source}

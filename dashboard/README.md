@@ -1,6 +1,6 @@
 # Dashboard — M9'da gelecek
 
-Next.js + Tailwind. Kullanıcının **okuma** penceresi (CLAUDE.md §9).
+Next.js + Tailwind. Kullanıcının **okuma** penceresi.
 
 Bu klasör M9'a kadar bilerek boş. Sebep: dikey dilim yaklaşımı. Önce veri
 gerçekten Supabase'e düşsün (M3), sonra onu gösteren arayüz yazılsın. Tersini

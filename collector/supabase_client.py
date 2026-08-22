@@ -2,7 +2,7 @@
 Supabase'e yazma katmanı — PostgREST üzerinden, service key ile.
 
 Service key RLS'i bypass eder; bu yüzden `account_id` ve `device_id` filtreleri
-bu modülü çağıran kodun sorumluluğundadır (CLAUDE.md §11, Boşluk D).
+bu modülü çağıran kodun sorumluluğundadır.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ REQUEST_TIMEOUT_SECONDS = 10.0
 
 # PostgREST'in çakışan satırları sessizce atlaması için gereken başlık.
 # `id` birincil anahtar olduğundan ON CONFLICT (id) DO NOTHING ile aynı sonucu
-# verir (CLAUDE.md §11, Boşluk C).
+# verir.
 PREFER_IGNORE_DUPLICATES = "resolution=ignore-duplicates,return=minimal"
 
 # Yanıt gövdesi istenmediğinde kullanılır — güncelleme sonrası satırı geri
@@ -50,11 +50,10 @@ PREFER_MINIMAL = "return=minimal"
 #   key_hash        — kimlik kanıtının kendisi; cihaz kendi anahtarını seçemez.
 #   device_name     — dashboard'un alanı (db/rls.sql: grant update (device_name)).
 #   logging_enabled — pause/resume durumu; sunucu kopyasını kimin yazacağı M6'da
-#   pending_delete    karara bağlanacak (md/memory/pending.md #7). O karar
-#                     verilene kadar collector dokunmaz.
+#   pending_delete    karara bağlanacak. O karar verilene kadar collector bu
+#                     sütunlara dokunmaz.
 #
-# Buraya sütun eklemek bilinçli bir güvenlik kararıdır; gerekçesi
-# md/memory/decisions.md'ye yazılır.
+# Buraya sütun eklemek bilinçli bir güvenlik kararıdır.
 DEVICE_WRITABLE_COLUMNS = frozenset(
     {
         # agent'ın envanterden bildirdikleri (InventoryIn ile aynı 14 alan)

@@ -1,7 +1,7 @@
 """
 Giriş noktası — `python -m agent` bu dosyayı çalıştırır.
 
-systemd unit'i de aynı komutu çağırır (CLAUDE.md §8, adım 5). Buradaki tek iş
+systemd unit'i de aynı komutu çağırır. Buradaki tek iş
 bağlamı kurup döngüye devretmek ve açılış hatalarını anlaşılır bir mesaja
 çevirmek; iş mantığı agent.core içindedir.
 """
@@ -15,7 +15,7 @@ from agent.core.config import ConfigError, ConfigLoader
 from agent.core.state import SingleWriterLock, StateStore
 
 # Çıkış kodları. systemd Restart=on-failure ile çalıştığı için sıfırdan farklı
-# her kod yeniden başlatma tetikler (CLAUDE.md §8).
+# her kod yeniden başlatma tetikler.
 EXIT_OK = 0
 EXIT_CONFIG_ERROR = 1
 EXIT_ALREADY_RUNNING = 2

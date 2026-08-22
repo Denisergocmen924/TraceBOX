@@ -9,7 +9,7 @@
 # =============================================================================
 
 # --- SIRLAR ------------------------------------------------------------------
-# Gerçek agent config'i: device_key'i içerir (CLAUDE.md §4.3).
+# Gerçek agent config'i: device_key'i içerir.
 # Repoda sadece config.example.toml durur; gerçek dosya /etc/tracebox/ altında
 # ve chmod 600'dür. Yerel testte kök dizine kopyalanabilir diye burada da engelli.
 config.toml
@@ -68,8 +68,7 @@ Thumbs.db
 !.vscode/settings.json
 !.vscode/extensions.json
 
-# Dokümantasyon dosyaları root repo dışında tutulacaktır
-# CLAUDE.md fiziksel olarak md/CLAUDE.md'dir; kökteki dosya ona bir symlink.
-# md/ ayrı bir private repo (github.com/Denisergocmen924/md) — bu public repoya girmez.
+# --- YEREL ÇALIŞMA DOSYALARI -------------------------------------------------
+# Makinede duran, repoya girmeyen yardımcı dosyalar.
 CLAUDE.md
 md/

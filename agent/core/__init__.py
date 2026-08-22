@@ -3,11 +3,11 @@ agent.core — platformdan bağımsız çekirdek.
 
 Buradaki hiçbir modül journald, systemd ya da Windows Event Log gibi bir
 kaynağı doğrudan tanımaz. Log okuma her zaman agent.logsources içindeki
-LogSource arayüzü üzerinden yapılır (CLAUDE.md §2, "bağımlılığı izole et").
+LogSource arayüzü üzerinden yapılır.
 
 MODÜLLER (Milestone sırasına göre eklenecek):
     config.py     M1  config.toml'u OKUR. Agent config'e asla yazmaz —
-                      config insan sınırıdır (CLAUDE.md §2).
+                      config insan sınırıdır.
     state.py      M1  state.json'u OKUR ve YAZAR. Bu dosyanın TEK YAZARI'dır;
                       "single writer" ilkesi burada somutlaşır.
     loop.py       M1  Tick tabanlı kalp atışı. Tek döngü, sayaçlarla — iki

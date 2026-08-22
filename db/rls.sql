@@ -8,7 +8,7 @@
 -- değiştirmek için db/migrations/ kullanılır; değişiklik İKİSİNE BİRDEN yazılır
 -- (kural: db/migrations/README.md).
 --
--- İKİ AYRI YAZMA/OKUMA YOLU (CLAUDE.md §11 / Boşluk D):
+-- İKİ AYRI YAZMA/OKUMA YOLU:
 --
 --   YAZMA:  Agent -> Collector (Fly.io) -> Supabase   [service key]
 --           service_role RLS'i BYPASS eder. Bu bilinçli: collector'ın kimin
@@ -51,7 +51,7 @@ create policy sel_accounts on public.accounts
   using (id = (select auth.uid()));
 
 -- UPDATE politikası BİLEREK YOK: retention_days ve plan birer POLICY'dir
--- (sistem sınırı), kullanıcının değiştirebileceği bir config değil (CLAUDE.md §2).
+-- (sistem sınırı), kullanıcının değiştirebileceği bir config değil.
 -- Kullanıcı kendi retention'ını 3650 güne çekebilseydi fatura mantrası
 -- ("az yaz, seyrek çek, kısa sakla") anlamsızlaşırdı.
 -- INSERT politikası da yok: satırı yalnızca handle_new_user() trigger'ı açar.
@@ -74,7 +74,7 @@ create policy upd_devices on public.devices
   using (account_id = (select auth.uid()));
 
 -- DELETE: "force remove" — agent'ı çevrimdışı olmuş, delete komutunu asla
--- alamayacak bir cihazı kaydından düşürmek için (CLAUDE.md §6).
+-- alamayacak bir cihazı kaydından düşürmek için.
 -- CASCADE ile metrics/logs/crash_snapshots/commands da temizlenir.
 -- UYARI (kabul edilen bedel): makine sonradan geri gelirse agent 401 alır ve
 -- kendini kapatana kadar boşuna dener; yerel dosyaları elle temizlenmelidir.
@@ -150,7 +150,7 @@ create policy sel_commands on public.commands
 --       Bu şart olmadan ciddi bir açık kalırdı: saldırgan KENDİ account_id'siyle
 --       ama KURBANIN device_id'siyle satır ekleyebilirdi. (a) kontrolünden geçerdi.
 --       Collector GET /commands'ı cihaz anahtarından çözdüğü device_id ile
---       sorguladığı için (account_id filtresi yok — CLAUDE.md §11 / Boşluk A),
+--       sorguladığı için (account_id filtresi yok),
 --       komut kurbanın agent'ına teslim edilirdi. type='delete' ile bu, herhangi
 --       bir kullanıcının başkasının makinesini uzaktan sildirmesi demekti.
 --       exists(...) sorgusu devices'ın primary key'i üzerinden tek satır okur;
