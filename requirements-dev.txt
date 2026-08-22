@@ -1,0 +1,9 @@
+# TraceBox — yalnızca geliştirme ve test bağımlılıkları.
+#
+# Bu dosya üretim image'ına GİRMEZ. collector/Dockerfile sadece
+# collector/requirements.txt'i kurar; buradakiler yerel makinede ve CI'da kurulur.
+#
+# Kurulum:  pip install -r requirements-dev.txt
+
+# Test koşucusu. Testleri bulur, çalıştırır, raporlar.
+pytest==9.1.1
